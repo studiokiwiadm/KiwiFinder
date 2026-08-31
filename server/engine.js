@@ -737,7 +737,12 @@ async function lerPaginaDeProduto (url, loja, config) {
 
 async function enriquecer (produto, limitePorRodada) {
   const dados = db()
-  if (produto.enriquecidoEm || produto.gtin) return false
+  // Produto sem foto vale uma visita à página, mesmo já enriquecido: o cartão
+  // sem imagem no meio de uma grade de fotos é o que mais chama atenção pelo
+  // motivo errado. Acontece com quem teve a foto amadora apagada e não recebeu
+  // substituta da listagem de busca.
+  const faltaFoto = !produto.imagem
+  if ((produto.enriquecidoEm || produto.gtin) && !faltaFoto) return false
   const oferta = dados.ofertas.find(o => o.produtoId === produto.id && o.url)
   if (!oferta) return false
   const loja = dados.lojas.find(l => l.id === oferta.lojaId)
