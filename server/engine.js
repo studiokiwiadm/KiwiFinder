@@ -661,7 +661,7 @@ async function gravarConsulta ({ consulta, interp, aceitos, lidos, rejeitados, l
   if (config.enriquecerProdutos !== false) {
     const recemNascidos = dados.produtos
       .filter(p => p.consultaId === consulta.id && produtosTocados.has(p.id))
-      .filter(p => !p.enriquecidoEm || !p.imagem)
+      .filter(p => !p.enriquecidoEm || !p.imagem || !p.fotoDaPagina)
       .slice(0, 6)
     // Também em paralelo: são páginas de lojas diferentes, e cada domínio já
     // tem sua fila. Em série, isso sozinho dobrava o tempo da rodada.
@@ -745,8 +745,15 @@ async function enriquecer (produto, limitePorRodada) {
   // sem imagem no meio de uma grade de fotos é o que mais chama atenção pelo
   // motivo errado. Acontece com quem teve a foto amadora apagada e não recebeu
   // substituta da listagem de busca.
-  const faltaFoto = !produto.imagem
-  if ((produto.enriquecidoEm || produto.gtin) && !faltaFoto) return false
+  // Foto vinda da LISTAGEM de busca justifica uma visita, mesmo com o produto
+  // já enriquecido: a listagem da Amazon serve foto de cliente, e a URL dela
+  // em tamanho cheio é indistinguível de uma foto oficial. Só a página do
+  // produto sabe qual a loja considera principal.
+  //
+  // `fotoDaPagina` limita isso a UMA visita por produto: depois de trocada, o
+  // produto não volta para a fila.
+  const fotoSuspeita = !produto.imagem || !produto.fotoDaPagina
+  if ((produto.enriquecidoEm || produto.gtin) && !fotoSuspeita) return false
   const oferta = dados.ofertas.find(o => o.produtoId === produto.id && o.url)
   if (!oferta) return false
   const loja = dados.lojas.find(l => l.id === oferta.lojaId)
@@ -770,8 +777,9 @@ async function enriquecer (produto, limitePorRodada) {
   // A página do produto tem a foto de catálogo, que é a melhor fonte que
   // existe — melhor que o que vem na listagem de busca, e é a única capaz de
   // dizer qual foto a loja considera principal.
-  if (pagina.imagem && produto.imagem !== pagina.imagem) {
+  if (pagina.imagem && (produto.imagem !== pagina.imagem || !produto.fotoDaPagina)) {
     produto.imagem = pagina.imagem
+    produto.fotoDaPagina = true
     mudou = true
   }
   // v2 não guarda mais a ficha técnica: é conteúdo copiado da página da loja,
@@ -844,8 +852,9 @@ function aproveitarFotoDaPagina (produto, pagina) {
   // cheio não tem marcador nenhum. Só a página distingue, porque é lá que a
   // loja declara qual é a principal (`landingImage`). Enquanto a regra fosse
   // "troca só se a guardada for ruim", elas ficariam para sempre.
-  if (produto.imagem === pagina.imagem) return
+  if (produto.imagem === pagina.imagem && produto.fotoDaPagina) return
   produto.imagem = pagina.imagem
+  produto.fotoDaPagina = true
 }
 
 function corrigirPrecoPelaPagina (produto, oferta, pagina, loja) {
