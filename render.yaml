@@ -1,0 +1,48 @@
+# Deploy no Render.
+#
+# Com este arquivo no repositório, o Render monta o serviço sozinho: em
+# "New +" -> "Blueprint", aponte para o repo e ele lê daqui.
+#
+# As variáveis marcadas `sync: false` NÃO ficam no repositório — o Render
+# pergunta cada uma na criação. É onde entram a chave do Supabase e a senha.
+
+services:
+  - type: web
+    name: kiwifinder
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+
+    # `npm ci --omit=dev` instalaria o playwright-core à toa: no plano free não
+    # existe Chrome para ele dirigir. `--ignore-scripts` evita qualquer download
+    # de navegador no build.
+    buildCommand: npm ci --ignore-scripts || npm install --ignore-scripts
+    startCommand: node server/index.js
+
+    # O Render considera a instância viva quando esta rota responde 200. Ela
+    # fica fora da senha de propósito.
+    healthCheckPath: /saude
+
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+
+      # Sem isto o app abre para qualquer um que tenha o endereço.
+      - key: KIWI_SENHA
+        sync: false
+
+      # Assina o cookie de sessão. Sem ele, um segredo novo é sorteado a cada
+      # reinício e você é deslogado toda vez que o serviço acorda.
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # Sem estas duas, o app grava em disco — e o disco do Render free some a
+      # cada deploy. Com elas, o Supabase guarda.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+
+      - key: NODE_ENV
+        value: production

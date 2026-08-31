@@ -11,6 +11,7 @@ import { readFile, writeFile, rename, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { configurado as temSupabase, carregarDoBanco, salvarNoBanco } from './supabase.js'
 
 const raiz = dirname(dirname(fileURLToPath(import.meta.url)))
 export const PASTA_DADOS = join(raiz, 'dados')
@@ -76,8 +77,31 @@ export function proximoId (colecao) {
   return `${colecao}_${dados.seq[colecao]}`
 }
 
+/**
+ * Onde os dados moram. Decidido pelo ambiente, não por configuração no app:
+ * com SUPABASE_URL e SUPABASE_SERVICE_KEY no ambiente, é o Supabase; sem elas,
+ * é o arquivo local de sempre.
+ *
+ * A mesma máquina pode rodar dos dois jeitos, e é assim que o app continua
+ * funcionando offline enquanto a versão online existe em paralelo.
+ */
+export function ondeGuarda () {
+  return temSupabase() ? 'supabase' : 'arquivo'
+}
+
 export async function carregar () {
   if (dados) return dados
+
+  if (temSupabase()) {
+    const doBanco = await carregarDoBanco()
+    dados = doBanco || estruturaClonada(VAZIO)
+    completarComPadroes()
+    // O histórico que veio do banco já está gravado nele — sem esta marca, a
+    // primeira gravação reinseriria tudo de novo, duplicando o histórico.
+    for (const h of dados.historico || []) h.gravadoNoBanco = true
+    return dados
+  }
+
   if (!existsSync(PASTA_DADOS)) await mkdir(PASTA_DADOS, { recursive: true })
   if (existsSync(ARQUIVO)) {
     try {
@@ -101,6 +125,16 @@ export async function carregar () {
   return dados
 }
 
+// Campo novo no VAZIO precisa aparecer em base antiga sem apagar o que existe.
+function completarComPadroes () {
+  for (const [chave, valor] of Object.entries(VAZIO)) {
+    if (dados[chave] === undefined) dados[chave] = estruturaClonada(valor)
+  }
+  for (const [chave, valor] of Object.entries(VAZIO.config)) {
+    if (dados.config[chave] === undefined) dados.config[chave] = valor
+  }
+}
+
 function estruturaClonada (v) {
   return JSON.parse(JSON.stringify(v))
 }
@@ -110,13 +144,25 @@ export function db () {
   return dados
 }
 
-// Escrita atômica com coalescência: várias chamadas seguidas viram uma gravação.
+// Escrita com coalescência: várias chamadas seguidas viram uma gravação só.
+// No arquivo ela é atômica (escreve .tmp e renomeia); no Supabase, o documento
+// vai inteiro e o histórico vai incremental.
 export async function salvar () {
   if (gravando) { regravar = true; return gravando }
   gravando = (async () => {
     try {
-      await writeFile(ARQUIVO_TMP, JSON.stringify(dados, null, 2), 'utf8')
-      await rename(ARQUIVO_TMP, ARQUIVO)
+      if (temSupabase()) {
+        await salvarNoBanco(dados)
+      } else {
+        await writeFile(ARQUIVO_TMP, JSON.stringify(dados, null, 2), 'utf8')
+        await rename(ARQUIVO_TMP, ARQUIVO)
+      }
+    } catch (erro) {
+      // Falha de gravação não pode passar em silêncio: no arquivo é raro, mas
+      // na nuvem a rede cai, e perder preço coletado sem avisar é o pior
+      // resultado possível.
+      console.error('[store] falha ao gravar:', erro.message)
+      throw erro
     } finally {
       gravando = null
       if (regravar) { regravar = false; await salvar() }

@@ -13,13 +13,14 @@ import { existsSync } from 'node:fs'
 import { extname, join, dirname, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { carregar, db, salvar, proximoId, agora } from './store.js'
+import { carregar, db, salvar, proximoId, agora, ondeGuarda } from './store.js'
 import { diagnosticar } from './diagnose.js'
 import { interpretar } from './nlp.js'
 import { rodar, iniciarAgendador, aoProgredir, resumoProduto, resumoGeral, rodadaAtual, serieDiaria, precisaAtualizar, adicionarOfertaManual } from './engine.js'
 import { limparPerfisOrfaos } from './navegador.js'
 import { LOJAS_CONHECIDAS } from './library.js'
 import { aplicarAfiliado, precisaDivulgar, TEXTO_DIVULGACAO, PROGRAMAS_CONHECIDOS } from './afiliado.js'
+import { exigeSenha, sessaoValida, senhaConfere, criarCookieDeSessao, cookieDeSaida, paginaDeLogin } from './auth.js'
 
 const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)))
 const PUBLICO = join(RAIZ, 'public')
@@ -73,6 +74,18 @@ async function lerCorpo (req) {
 }
 
 const naoAchou = (res, msg = 'não encontrado') => json(res, { erro: msg }, 404)
+
+// O formulário de senha manda application/x-www-form-urlencoded, não JSON.
+async function lerCorpoTexto (req) {
+  const partes = []
+  let tamanho = 0
+  for await (const pedaco of req) {
+    tamanho += pedaco.length
+    if (tamanho > 10_000) throw new Error('corpo grande demais')
+    partes.push(pedaco)
+  }
+  return Buffer.concat(partes).toString('utf8')
+}
 
 // ------------------------------------------------------------ montar estado
 
@@ -592,6 +605,40 @@ iniciarAgendador()
 const servidor = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
   try {
+    // ---- porta de entrada ----
+    // Só existe quando KIWI_SENHA está no ambiente. Na máquina de casa não
+    // está, e o app abre direto, como sempre abriu.
+    if (exigeSenha()) {
+      if (url.pathname === '/entrar' && req.method === 'POST') {
+        const corpo = await lerCorpoTexto(req)
+        const senha = new URLSearchParams(corpo).get('senha') || ''
+        if (senhaConfere(senha)) {
+          res.writeHead(302, { Location: '/', 'Set-Cookie': criarCookieDeSessao() })
+          return res.end()
+        }
+        res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' })
+        return res.end(paginaDeLogin('Senha incorreta.'))
+      }
+      if (url.pathname === '/sair') {
+        res.writeHead(302, { Location: '/', 'Set-Cookie': cookieDeSaida() })
+        return res.end()
+      }
+      if (!sessaoValida(req)) {
+        // A API responde 401 em JSON; a tela responde com o formulário. Sem
+        // isso, uma sessão vencida devolveria HTML dentro de um fetch e o app
+        // quebraria com um erro sem sentido.
+        if (url.pathname.startsWith('/api')) return json(res, { erro: 'sessão expirada' }, 401)
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+        return res.end(paginaDeLogin())
+      }
+    }
+
+    // Sinal de vida para o Render saber que a instância subiu.
+    if (url.pathname === '/saude') {
+      // Fora da senha de propósito: é como o Render sabe que a instância subiu.
+      return json(res, { ok: true, guardando: ondeGuarda() })
+    }
+
     if (url.pathname.startsWith('/api')) return await api(req, res, url)
     return await estatico(req, res, url)
   } catch (erro) {

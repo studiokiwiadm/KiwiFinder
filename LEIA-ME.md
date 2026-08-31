@@ -12,6 +12,86 @@ confiança e o que quer comprar; ele pesquisa sozinho, casa os anúncios entre a
 lojas, guarda o histórico de preço e avisa quando aparece oportunidade.
 
 
+
+## Colocar online (GitHub + Supabase + Render)
+
+O app roda de dois jeitos, decididos por variáveis de ambiente. **Sem nenhuma
+variável, nada muda**: grava em `dados/kiwifinder.json` e abre sem senha, como
+sempre fez nesta máquina. Com elas, guarda no Supabase e pede senha.
+
+### 1. GitHub
+
+Esta pasta já é um repositório próprio (`git init` feito, primeiro commit
+feito). Ela continua morando dentro do vault, mas o vault **não a rastreia
+mais** — é o que impede as notas pessoais de irem junto para a nuvem.
+
+Crie o repositório no GitHub **privado** e conecte:
+
+```
+git remote add origin https://github.com/SEU_USUARIO/kiwifinder.git
+git push -u origin main
+```
+
+Antes de empurrar, confira o que vai: `git status --short`. Devem aparecer 30
+arquivos de código. Se aparecer `dados/`, `.env` ou `node_modules`, **pare** —
+o `.gitignore` foi mexido.
+
+### 2. Supabase
+
+1. Crie o projeto.
+2. **SQL Editor** → cole o conteúdo de `esquema.sql` → *Run*. Cria as duas
+   tabelas (`estado` e `historico`) com RLS ligado e sem política de acesso —
+   ou seja, a chave pública não lê nada.
+3. **Project Settings → API**, anote:
+   - `Project URL` → vai em `SUPABASE_URL`
+   - `service_role` (a secreta, **não** a `anon`) → vai em `SUPABASE_SERVICE_KEY`
+
+A `service_role` passa por cima do RLS e nunca chega ao navegador: só o
+servidor a usa. Se vazar, quem tiver a chave lê e escreve o banco inteiro —
+por isso ela vive só nas variáveis de ambiente.
+
+Para levar o que já existe nesta máquina (hoje: 6 lojas, 4 buscas, 82 produtos
+e o histórico de preço, que é o que não dá para refazer):
+
+```
+node importar-para-supabase.mjs
+```
+
+### 3. Render
+
+**New + → Blueprint**, apontando para o repositório. O `render.yaml` já diz o
+resto. Ele vai pedir três valores:
+
+| variável | o que é |
+|---|---|
+| `KIWI_SENHA` | a senha da tela. **Obrigatória online** |
+| `SUPABASE_URL` | o Project URL |
+| `SUPABASE_SERVICE_KEY` | a chave `service_role` |
+
+O `SESSION_SECRET` o próprio Render gera.
+
+### O que muda ao sair desta máquina
+
+Três coisas, e vale saber antes:
+
+**1. Loja que precisa de navegador para de funcionar.** No plano free do Render
+não existe Chrome instalado, e o app não baixa navegador (o build roda com
+`--ignore-scripts` de propósito). Hoje isso afeta a **Go Imports**, cuja busca
+só existe em JavaScript. As outras lojas leem por requisição comum e continuam
+iguais. A saída definitiva é a mesma da v2: feed de afiliado, que dispensa
+navegador e ainda vem com dado melhor.
+
+**2. O serviço dorme.** O plano free suspende a instância depois de ~15 minutos
+sem acesso, e o agendador dorme junto — as rodadas de hora em hora só
+acontecem enquanto alguém está com o app aberto. Duas saídas: um ping externo
+de 10 em 10 minutos (o free dá 750 h/mês, que cobre uma instância ligada o mês
+todo), ou plano pago. Enquanto isso, "atualizar ao abrir" continua valendo e é
+o que segura o uso real.
+
+**3. Preço vem do IP do servidor, não do seu.** Loja que mostra preço ou frete
+por região vai responder pela região do datacenter (Oregon, na configuração
+atual). Para preço de produto costuma dar no mesmo; para frete, não.
+
 ## Da v1 para a v2 — o que mudou e por quê
 
 A v1 está congelada no git na tag `kiwifinder-v1`. Para voltar a ela:
