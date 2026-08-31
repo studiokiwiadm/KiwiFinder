@@ -720,6 +720,37 @@ const servidor = createServer(async (req, res) => {
       return res.end()
     }
 
+    // ---- o que este servidor alcança ----
+    /**
+     * Diagnóstico de rede, autorizado pelo mesmo token do agendador.
+     *
+     * Existe porque "a loja dá 403" tem duas causas muito diferentes e
+     * indistinguíveis de fora: a loja recusa qualquer robô, ou recusa a FAIXA
+     * DE IP deste servidor. A primeira é decisão dela sobre coleta; a segunda é
+     * reputação do datacenter, e some trocando de hospedagem.
+     *
+     * Medir isso do lado de fora é impossível — só o próprio servidor sabe o
+     * que consegue abrir.
+     */
+    if (url.pathname === '/api/alcance') {
+      const token = process.env.CRON_TOKEN
+      const enviado = url.searchParams.get('token') || (req.headers.authorization || '').replace(/^Bearer /, '')
+      if (!token || enviado !== token) return json(res, { erro: 'token inválido' }, 401)
+      const alvos = (url.searchParams.get('urls') || '').split(',').filter(Boolean)
+      if (!alvos.length) return json(res, { erro: 'passe ?urls=a,b,c' }, 400)
+      const { buscar } = await import('./net.js')
+      const saida = []
+      for (const alvo of alvos.slice(0, 8)) {
+        try {
+          const r = await buscar(alvo, { tentativas: 1, usarCache: false })
+          saida.push({ url: alvo, status: r.status, bytes: (r.html || '').length, bloqueado: Boolean(r.bloqueado) })
+        } catch (erro) {
+          saida.push({ url: alvo, erro: erro.message.slice(0, 80) })
+        }
+      }
+      return json(res, { resultados: saida })
+    }
+
     // Sinal de vida para o Render saber que a instância subiu.
     if (url.pathname === '/saude') {
       // Fora da senha de propósito: é como o Render sabe que a instância subiu.
