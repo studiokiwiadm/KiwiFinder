@@ -42,6 +42,10 @@ const VAZIO = {
     // Loja de busca só-JavaScript é lida pelo sitemap dela, não por navegador.
     usarSitemap: true,
     paginasPorSitemap: 8,
+    // Seu id de publisher na Awin. Vale para TODAS as lojas da rede, então
+    // mora aqui e não repetido em cada uma — cada loja guarda só o `awinmid`
+    // dela. Vazio = links saem sem afiliado, que é o padrão seguro.
+    awinaffid: '',
 
     intervaloMinutos: 60,               // atualiza de hora em hora
     atualizarAoAbrir: true,             // e assim que você abre o app, se estiver velho

@@ -120,7 +120,7 @@ function produtoPublico (produto) {
         // A URL que a pessoa clica de fato: com o código de afiliado quando a
         // loja tem um configurado. `url` continua sendo a original, que é o
         // que o app usa para reler a página.
-        urlSaida: aplicarAfiliado(o.url, loja && loja.afiliado),
+        urlSaida: aplicarAfiliado(o.url, loja && loja.afiliado, { awinaffid: dados.config.awinaffid }),
         titulo: o.titulo,
         score: o.score,
         atualizadoEm: o.atualizadoEm,
@@ -166,7 +166,7 @@ function estadoCompleto () {
     // Divulgação de afiliado: obrigatória em praticamente todo programa, e o
     // mínimo de honestidade de qualquer jeito. Só aparece quando há de fato um
     // link de afiliado no ar.
-    divulgacaoAfiliado: precisaDivulgar(dados.lojas) ? TEXTO_DIVULGACAO : null,
+    divulgacaoAfiliado: precisaDivulgar(dados.lojas, { awinaffid: dados.config.awinaffid }) ? TEXTO_DIVULGACAO : null,
     rodada: rodadaAtual() ? { rodando: true, ...rodadaAtual() } : { rodando: false }
   }
 }
@@ -612,7 +612,7 @@ async function api (req, res, url) {
     const corpo = await lerCorpo(req)
     const permitidos = ['horarios', 'agendadorAtivo', 'tetoPorConsulta', 'limiarAceite',
       'quedaRelevante', 'tema', 'paginasPorBusca', 'usarNavegador', 'navegadorVisivel', 'verificarCupons',
-      'intervaloMinutos', 'atualizarAoAbrir',
+      'intervaloMinutos', 'atualizarAoAbrir', 'awinaffid',
       'enriquecerProdutos']
     for (const campo of permitidos) {
       if (corpo[campo] !== undefined) dados.config[campo] = corpo[campo]

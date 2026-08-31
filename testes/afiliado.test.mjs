@@ -73,13 +73,52 @@ caso('8. a divulgação aparece quando existe link de afiliado no ar', () => {
   assert.equal(precisaDivulgar([{ nome: 'A', afiliado: { tipo: 'parametro', chave: 'tag', valor: 'k' } }]), true)
 })
 
-caso('9. os programas conhecidos vêm sem código preenchido', () => {
-  // O código é dele e só ele tem. Vir preenchido seria um bug perigoso.
+caso('9. os programas conhecidos vêm sem NENHUMA identidade preenchida', () => {
+  // O código é dele e só ele tem. Vir preenchido seria um bug perigoso: o app
+  // mandaria comissão para outra pessoa sem ninguém perceber.
   for (const p of PROGRAMAS_CONHECIDOS) {
     assert.ok(p.nome && p.cadastro, `${p.id} precisa de nome e link de cadastro`)
-    assert.equal(p.afiliado.valor, '', `${p.id} não pode vir com código preenchido`)
-    assert.equal(temAfiliado(p.afiliado), p.afiliado.tipo === 'caminho', `${p.id}: só o tipo caminho vale sem código`)
+    assert.ok(!p.afiliado.valor, `${p.id} não pode vir com código preenchido`)
+    assert.ok(!p.afiliado.awinaffid, `${p.id} não pode vir com id de publisher preenchido`)
+    assert.ok(!p.afiliado.awinmid, `${p.id} não pode vir com id de anunciante preenchido`)
   }
+})
+
+// ==================================================================
+// AWIN — o formato que o app monta sozinho, sem chamar API
+// ==================================================================
+
+caso('10. awin monta o deep link no formato documentado', () => {
+  const alvo = 'https://www.kabum.com.br/produto/1014720/macbook-air-m5'
+  const url = aplicarAfiliado(alvo, { tipo: 'awin', awinmid: '17729' }, { awinaffid: '999888' })
+  const u = new URL(url)
+  assert.equal(u.origin + u.pathname, 'https://www.awin1.com/cread.php')
+  assert.equal(u.searchParams.get('awinmid'), '17729', 'awinmid é a LOJA')
+  assert.equal(u.searchParams.get('awinaffid'), '999888', 'awinaffid é VOCÊ')
+  assert.equal(u.searchParams.get('ued'), alvo, 'a URL da loja vai codificada e volta inteira')
+})
+
+caso('11. awin sem id de publisher devolve a URL original', () => {
+  // Link sem comissão é ruim; link quebrado é pior. Na dúvida, manda direto.
+  const alvo = 'https://www.kabum.com.br/produto/1'
+  assert.equal(aplicarAfiliado(alvo, { tipo: 'awin', awinmid: '17729' }), alvo)
+  assert.equal(aplicarAfiliado(alvo, { tipo: 'awin' }, { awinaffid: '999888' }), alvo)
+})
+
+caso('12. awin aceita o id do publisher na loja ou na configuração global', () => {
+  const alvo = 'https://x.com/p'
+  const naLoja = aplicarAfiliado(alvo, { tipo: 'awin', awinmid: '1', awinaffid: 'AAA' })
+  const global = aplicarAfiliado(alvo, { tipo: 'awin', awinmid: '1' }, { awinaffid: 'BBB' })
+  assert.ok(naLoja.includes('awinaffid=AAA'))
+  assert.ok(global.includes('awinaffid=BBB'))
+  // O da loja manda, quando os dois existem.
+  const ambos = aplicarAfiliado(alvo, { tipo: 'awin', awinmid: '1', awinaffid: 'AAA' }, { awinaffid: 'BBB' })
+  assert.ok(ambos.includes('awinaffid=AAA'))
+})
+
+caso('13. clickref entra quando existe, para saber de onde veio o clique', () => {
+  const url = aplicarAfiliado('https://x.com/p', { tipo: 'awin', awinmid: '1', awinaffid: 'A', clickref: 'kiwi-card' })
+  assert.equal(new URL(url).searchParams.get('clickref'), 'kiwi-card')
 })
 
 let passou = 0

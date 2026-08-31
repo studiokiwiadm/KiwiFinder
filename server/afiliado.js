@@ -41,7 +41,7 @@
  * @param {Afiliado|null} afiliado
  * @returns {string}
  */
-export function aplicarAfiliado (url, afiliado) {
+export function aplicarAfiliado (url, afiliado, opcoes = {}) {
   if (!url || !afiliado || !afiliado.tipo) return url
   try {
     switch (afiliado.tipo) {
@@ -62,6 +62,22 @@ export function aplicarAfiliado (url, afiliado) {
           .replace('{url}', encodeURIComponent(url))
           .replace('{codigo}', encodeURIComponent(afiliado.valor || ''))
       }
+      case 'awin': {
+        // A Awin tem duas identidades, e tratá-las como uma só foi erro meu no
+        // primeiro desenho: `awinaffid` é VOCÊ (um número, igual para todas as
+        // lojas) e `awinmid` é a LOJA (um número por anunciante). Guardar as
+        // duas no mesmo campo obrigaria a repetir o seu id em cada loja e
+        // erraria na primeira vez que ele mudasse.
+        //
+        // O link é montado aqui, sem chamada de API: o formato é público e
+        // determinístico. É assim que comparador de preço gera milhões deles.
+        const afiliadoId = afiliado.awinaffid || opcoes.awinaffid
+        if (!afiliadoId || !afiliado.awinmid) return url
+        const destino = encodeURIComponent(url)
+        const ref = afiliado.clickref ? `&clickref=${encodeURIComponent(afiliado.clickref)}` : ''
+        return `https://www.awin1.com/cread.php?awinmid=${encodeURIComponent(afiliado.awinmid)}` +
+          `&awinaffid=${encodeURIComponent(afiliadoId)}${ref}&ued=${destino}`
+      }
       case 'sufixo': {
         if (!afiliado.valor) return url
         const junta = url.includes('?') ? '&' : '?'
@@ -77,9 +93,10 @@ export function aplicarAfiliado (url, afiliado) {
 }
 
 /** Tem código de afiliado configurado e utilizável? */
-export function temAfiliado (afiliado) {
+export function temAfiliado (afiliado, opcoes = {}) {
   if (!afiliado || !afiliado.tipo) return false
   if (afiliado.tipo === 'caminho') return Boolean(afiliado.modelo)
+  if (afiliado.tipo === 'awin') return Boolean(afiliado.awinmid && (afiliado.awinaffid || opcoes.awinaffid))
   return Boolean(afiliado.valor)
 }
 
@@ -89,8 +106,8 @@ export function temAfiliado (afiliado) {
  * um interesse na indicação. Uma linha resolve — e ela só aparece quando há
  * de fato um link de afiliado no ar.
  */
-export function precisaDivulgar (lojas) {
-  return (lojas || []).some(l => temAfiliado(l.afiliado))
+export function precisaDivulgar (lojas, opcoes = {}) {
+  return (lojas || []).some(l => temAfiliado(l.afiliado, opcoes))
 }
 
 export const TEXTO_DIVULGACAO =
@@ -128,10 +145,15 @@ export const PROGRAMAS_CONHECIDOS = [
     id: 'awin',
     nome: 'Awin',
     host: null,
-    afiliado: { tipo: 'caminho', modelo: 'https://www.awin1.com/cread.php?awinmid={codigo}&awinaffid=SEU_ID&ued={url}', valor: '', rede: 'Awin' },
+    // `awinmid` muda por loja (KaBuM é 17729, iPlace é 31355 — está na URL do
+    // perfil do anunciante). `awinaffid` é seu, um só, e fica na configuração.
+    afiliado: { tipo: 'awin', awinmid: '', rede: 'Awin' },
     cadastro: 'https://www.awin.com/br',
-    observacao: 'Rede: você entra uma vez e se candidata a vários anunciantes. Muitos ' +
-      'entregam feed de produtos ao afiliado — que é exatamente o dado que o app precisa, com permissão embutida.'
+    observacao: 'Rede: você entra uma vez e se candidata a vários anunciantes. O link é ' +
+      'montado pelo app, sem API — o formato é público. Exige estar aprovado no anunciante e ' +
+      'ele ter deep linking habilitado. Muitos entregam feed de produtos, que é exatamente o ' +
+      'dado que o app precisa, com permissão embutida.',
+    idsConhecidos: { 'kabum.com.br': '17729', 'iplace.com.br': '31355', 'fastshop.com.br': '17590', 'dafiti.com.br': '17697' }
   },
   {
     id: 'rakuten',
