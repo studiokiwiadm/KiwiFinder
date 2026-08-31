@@ -548,6 +548,55 @@ async function api (req, res, url) {
     return json(res, await disponivel())
   }
 
+  // ------------------------------------------------------------ importação
+  /**
+   * Sobe o estado de uma máquina para este servidor.
+   *
+   * Existe para a mudança de casa para a nuvem, e o desenho é deliberado: em
+   * vez de a chave do banco descer para o computador do usuário (num .env em
+   * texto puro) para um script empurrar os dados, é o ARQUIVO que sobe, por
+   * dentro do app já autenticado. A chave fica num lugar só, no servidor.
+   *
+   * Só aceita quando o servidor está vazio. Importar por cima de um banco com
+   * histórico apagaria leitura de preço, que é o único dado insubstituível
+   * aqui — e um engano desses não teria volta.
+   */
+  if (metodo === 'POST' && caminho === '/importar') {
+    const jaTem = dados.produtos.length || dados.historico.length || dados.lojas.length
+    const corpo = await lerCorpo(req)
+    if (jaTem && !corpo.substituir) {
+      return json(res, {
+        erro: 'este servidor já tem dados',
+        detalhe: `${dados.lojas.length} loja(s), ${dados.produtos.length} produto(s) e ${dados.historico.length} leitura(s) de preço. ` +
+          'Importar por cima apagaria tudo isso. Envie substituir: true se for mesmo a intenção.'
+      }, 409)
+    }
+    const vindo = corpo.dados
+    if (!vindo || typeof vindo !== 'object' || !Array.isArray(vindo.produtos)) {
+      return json(res, { erro: 'não reconheci o arquivo — esperava o kiwifinder.json' }, 400)
+    }
+
+    // Substitui coleção por coleção, mantendo o objeto `dados` que o resto do
+    // app já tem na mão — trocar a referência deixaria módulos apontando para
+    // o estado velho.
+    for (const chave of ['config', 'lojas', 'consultas', 'produtos', 'ofertas', 'historico', 'oportunidades', 'rodadas', 'seq']) {
+      if (vindo[chave] !== undefined) dados[chave] = vindo[chave]
+    }
+    // O histórico que chegou é novo para este banco: sem limpar a marca, nada
+    // seria gravado (ver salvarNoBanco).
+    for (const h of dados.historico) delete h.gravadoNoBanco
+    await salvar()
+    transmitir({ tipo: 'atualizado' })
+    return json(res, {
+      ok: true,
+      lojas: dados.lojas.length,
+      consultas: dados.consultas.length,
+      produtos: dados.produtos.length,
+      ofertas: dados.ofertas.length,
+      historico: dados.historico.length
+    })
+  }
+
   // ---------------------------------------------------------------- rodada
   if (metodo === 'POST' && caminho === '/rodar') {
     if (rodadaAtual()) return json(res, { erro: 'já existe uma rodada em andamento' }, 409)

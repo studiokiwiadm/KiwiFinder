@@ -40,18 +40,14 @@ E, mais abaixo, em *Project API keys*, a chave **`service_role`**. Ela vem
 escondida atrás de um "Reveal". **Não é a `anon`** — a `anon` é pública e não
 serve aqui.
 
-**Essa chave é o banco inteiro na mão de quem a tiver.** Não me mande por
-mensagem, não cole em lugar nenhum além dos dois destinos abaixo. Crie um
-arquivo chamado `.env` nesta pasta e escreva assim:
+**Essa chave é o banco inteiro na mão de quem a tiver.** Guarde-a para o passo
+2 e não a cole em nenhum outro lugar — nem num arquivo aqui na máquina. O único
+destino dela é o campo do Render.
 
-```
-SUPABASE_URL=https://abcdefgh.supabase.co
-SUPABASE_SERVICE_KEY=a-service-role-que-você-revelou
-```
-
-O `.env` está no `.gitignore`, então ele nunca vai para o GitHub. Me avise
-quando salvar: eu rodo a importação e subo o seu histórico de preço, que é a
-única coisa aqui que não dá para refazer.
+Os dados que já existem nesta máquina (lojas, buscas, produtos e o histórico de
+preço) sobem depois, pelo próprio app, em **Ajustes → Trazer os dados de outra
+máquina**. É de propósito: assim a chave do banco fica num lugar só, no
+servidor, em vez de descer para um arquivo de texto no seu computador.
 
 ### Passo 2 — Render (o servidor)
 
@@ -85,6 +81,18 @@ No repositório, vá em **Settings → Secrets and variables → Actions** e cli
 Pronto. Para não esperar a hora cheia, vá na aba **Actions**, clique em
 **Rodada de preços** e depois em **Run workflow**. Em uns três minutos ele volta
 com quantos itens leu.
+
+### Passo 4 — levar os dados desta máquina
+
+Abra o endereço do Render, entre com a senha, e vá em **Ajustes**. Lá embaixo,
+em *Trazer os dados de outra máquina*, escolha o arquivo
+`dados/kiwifinder.json` desta pasta e clique em **Importar**.
+
+Sobem as lojas, as buscas, os produtos e o histórico de preço — o histórico é o
+que importa, porque preço de ontem não volta.
+
+A importação só é aceita enquanto o servidor está vazio. Se já houver dado lá,
+ele recusa e diz quanto perderia; só passa por cima se você confirmar.
 
 ### O que muda ao sair desta máquina
 

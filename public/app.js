@@ -1902,7 +1902,66 @@ function renderAjustes() {
       <a class="kf-btn kf-btn-secundaria" href="/api/exportar/historico.csv" download>Baixar histórico em CSV</a>
     </div>
   </form>
+
+  <div class="kf-card kf-mt-16">
+    <div class="kf-ajustes-linha-texto">
+      <strong>Trazer os dados de outra máquina</strong>
+      <span>Escolha o <code>dados/kiwifinder.json</code> do computador onde o KiwiFinder rodava.
+      Sobe lojas, buscas, produtos e o histórico de preço — que é a única coisa que não dá para refazer.
+      Só funciona enquanto este servidor estiver vazio.</span>
+    </div>
+    <div class="kf-mt-16 kf-cartao-acoes">
+      <input type="file" id="kf-arquivo-importar" accept=".json,application/json" class="kf-input" style="max-width:340px;">
+      <button type="button" class="kf-btn kf-btn-secundaria" data-action="ajustes.importar">Importar</button>
+    </div>
+  </div>
   `;
+}
+
+/**
+ * Sobe o estado de outra máquina para este servidor.
+ *
+ * O arquivo é lido no navegador e enviado pela sessão já autenticada — assim a
+ * chave do banco nunca precisa descer para o computador de ninguém.
+ */
+async function importarDeArquivo() {
+  const campo = document.getElementById('kf-arquivo-importar');
+  const arquivo = campo?.files?.[0];
+  if (!arquivo) { mostrarToast('Escolha o arquivo kiwifinder.json primeiro.', 'erro'); return; }
+
+  let dados;
+  try {
+    dados = JSON.parse(await arquivo.text());
+  } catch { mostrarToast('Esse arquivo não é um JSON válido.', 'erro'); return; }
+
+  const enviar = async (substituir) => {
+    const r = await fetch(`${BASE}/importar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dados, substituir })
+    });
+    return { ok: r.ok, corpo: await r.json().catch(() => ({})) };
+  };
+
+  mostrarToast('Enviando…');
+  let { ok, corpo } = await enviar(false);
+
+  if (!ok && corpo.detalhe) {
+    // Servidor já tem dados: a confirmação é obrigatória, porque importar por
+    // cima apaga histórico de preço e isso não tem volta.
+    confirmarAcao('Já existe dado aqui', corpo.detalhe, 'Substituir mesmo assim', async () => {
+      const segunda = await enviar(true);
+      if (!segunda.ok) { mostrarToast(segunda.corpo.erro || 'não consegui importar', 'erro'); return; }
+      mostrarToast(`Importado: ${segunda.corpo.produtos} produtos e ${segunda.corpo.historico} leituras.`, 'sucesso');
+      await carregarEstado(); render();
+    });
+    return;
+  }
+  if (!ok) { mostrarToast(corpo.erro || 'não consegui importar', 'erro'); return; }
+
+  mostrarToast(`Importado: ${corpo.produtos} produtos e ${corpo.historico} leituras.`, 'sucesso');
+  await carregarEstado();
+  render();
 }
 
 function notificacoesLigadas() {
@@ -1998,6 +2057,7 @@ function handleClick(e) {
     case 'produtos.arquivar.toggle': toggleArquivarProduto(id); break;
     case 'produtos.link': adicionarLinkDeLoja(id); break;
     case 'produtos.grupo': abrirModalGrupo(id); break;
+    case 'ajustes.importar': importarDeArquivo(); break;
     case 'modal.voltar': abrirModalGrupo(id); break;
     case 'oportunidades.lida': marcarOportunidadeLida(id); break;
     case 'oportunidades.lidas.todas': marcarTodasOportunidadesLidas(); break;
