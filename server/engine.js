@@ -654,10 +654,14 @@ async function gravarConsulta ({ consulta, interp, aceitos, lidos, rejeitados, l
     avaliarOportunidades(produto, loja, oferta, precoAnterior, config, minimoAntes)
   }
 
-  // Produtos novos ganham uma visita à página do anúncio atrás de EAN/ficha.
-  if (config.enriquecerProdutos !== false && novos) {
+  // Produtos novos ganham uma visita à página do anúncio atrás de EAN/ficha —
+  // e produto SEM FOTO também, mesmo que a rodada não tenha trazido nada novo.
+  // Sem isso o enriquecimento só rodava quando aparecia produto inédito, e os
+  // que perderam a foto amadora ficavam sem imagem para sempre.
+  if (config.enriquecerProdutos !== false) {
     const recemNascidos = dados.produtos
-      .filter(p => p.consultaId === consulta.id && !p.enriquecidoEm && produtosTocados.has(p.id))
+      .filter(p => p.consultaId === consulta.id && produtosTocados.has(p.id))
+      .filter(p => !p.enriquecidoEm || !p.imagem)
       .slice(0, 6)
     // Também em paralelo: são páginas de lojas diferentes, e cada domínio já
     // tem sua fila. Em série, isso sozinho dobrava o tempo da rodada.

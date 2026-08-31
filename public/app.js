@@ -29,7 +29,7 @@ const ui = {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
   })(),
   sidebarRecolhida: localStorage.getItem('kiwifinder.sidebar') === 'recolhida',
-  rota: 'painel',
+  rota: 'produtos',
   carregandoInicial: true,
   erroCarregamento: null,
   sseConectado: false,
@@ -404,7 +404,7 @@ function tratarEventoSSE(msg) {
     if (ui.rota === 'lojas') renderPreservandoFoco();
   } else if (msg.tipo === 'rodada') {
     ui.rodadaProgresso = { fase: msg.fase, atual: msg.atual, total: msg.total, texto: msg.texto };
-    if (ui.rota === 'painel') renderPreservandoFoco();
+    if (ui.rota === 'produtos') renderPreservandoFoco();
   } else if (msg.tipo === 'atualizado') {
     const estavaRodando = ui.rodadaEmAndamento;
     carregarEstado().then(() => {
@@ -421,10 +421,15 @@ function tratarEventoSSE(msg) {
 // ----------------------------------------------------------------------------
 // Roteamento e renderização
 // ----------------------------------------------------------------------------
-const ROTAS = ['painel', 'consultas', 'produtos', 'lojas', 'oportunidades', 'ajustes'];
+// Produtos é a tela principal: é a única que responde a pergunta do app
+// ("quanto custa e onde"). Painel e Oportunidades saíram da navegação — o
+// primeiro era um resumo técnico que ninguém abria, o segundo virou uma lista
+// longa demais para ser lida. O dado das oportunidades continua existindo e
+// alimentando o aviso do sistema; só a tela dedicada deixou de existir.
+const ROTAS = ['produtos', 'consultas', 'lojas', 'ajustes'];
 function rotaAtual() {
   const hash = location.hash.replace(/^#\/?/, '').split('?')[0];
-  return ROTAS.includes(hash) ? hash : 'painel';
+  return ROTAS.includes(hash) ? hash : 'produtos';
 }
 function capturarFoco() {
   const el = document.activeElement;
@@ -482,11 +487,9 @@ function render() {
 
   let html = '';
   switch (ui.rota) {
-    case 'painel': html = renderPainel(); break;
     case 'consultas': html = renderConsultas(); break;
     case 'produtos': html = renderProdutos(); break;
     case 'lojas': html = renderLojas(); break;
-    case 'oportunidades': html = renderOportunidades(); break;
     case 'ajustes': html = renderAjustes(); break;
   }
   // Divulgação de link de afiliado: exigência de praticamente todo programa, e
@@ -1002,7 +1005,7 @@ function renderConsultas() {
   const consultas = state.consultas || [];
   const rasc = ui.consultaRascunho;
   return `
-  <div class="kf-tela-cabecalho"><div><h1 class="kf-tela-titulo">Buscas</h1><p class="kf-tela-subtitulo">Escreva o que você quer comprar. Pode ser específico, como “Cafeteira Oster Máxima 127V”, ou aberto, como “cafeteira expresso”.</p></div></div>
+  <div class="kf-tela-cabecalho"><div><h1 class="kf-tela-titulo">Adicionar</h1><p class="kf-tela-subtitulo">Escreva o que você quer comprar. Pode ser específico, como “Cafeteira Oster Máxima 127V”, ou aberto, como “cafeteira expresso”.</p></div></div>
 
   <form class="kf-card" data-action-submit="consultas.criar">
     <label class="kf-campo">
