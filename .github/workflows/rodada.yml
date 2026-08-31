@@ -1,0 +1,43 @@
+# Acorda o KiwiFinder de hora em hora para rodar, e deixa dormir de novo.
+#
+# Por que não deixar acordado: o plano free do Render dá 750 horas de instância
+# por mês para o workspace INTEIRO. Um serviço ligado 24/7 come ~730 delas e não
+# sobra nada para outro projeto. Uma rodada leva ~3 minutos — 24 por dia dão
+# ~36 horas no mês.
+#
+# De quebra, isso mantém o Supabase ativo: projeto free pausa depois de uma
+# semana sem uso.
+#
+# Configurar (uma vez): no GitHub, Settings -> Secrets and variables -> Actions
+#   KIWI_URL    https://kiwifinder.onrender.com
+#   CRON_TOKEN  o mesmo valor posto na variável CRON_TOKEN do Render
+
+name: Rodada de preços
+
+on:
+  schedule:
+    # De hora em hora. O agendador do GitHub costuma atrasar alguns minutos em
+    # horário de pico — para preço, tanto faz.
+    - cron: '7 * * * *'
+  # Permite disparar na mão pela aba Actions, útil para testar.
+  workflow_dispatch:
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar o serviço
+        # A primeira chamada depois de dormir demora ~1 minuto (cold start).
+        run: |
+          curl --silent --show-error --fail --max-time 180 \
+            "${{ secrets.KIWI_URL }}/saude" || echo "ainda acordando"
+
+      - name: Rodar
+        # --max-time generoso: a rodada inteira acontece dentro desta chamada,
+        # de propósito, para o Render não suspender a instância no meio.
+        run: |
+          resposta=$(curl --silent --show-error --fail --max-time 900 \
+            -H "Authorization: Bearer ${{ secrets.CRON_TOKEN }}" \
+            "${{ secrets.KIWI_URL }}/api/rodar-agendado")
+          echo "$resposta"
+          echo "$resposta" | grep -q '"ok":true' || exit 1

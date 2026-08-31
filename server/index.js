@@ -605,6 +605,43 @@ iniciarAgendador()
 const servidor = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
   try {
+    // ---- gatilho da rodada por agendador externo ----
+    // O plano free do Render suspende a instância depois de 15 minutos parada,
+    // e o agendador de dentro do app dorme junto. Manter o serviço acordado o
+    // mês inteiro custaria ~730 das 750 horas gratuitas do workspace, sem
+    // sobrar nada para outro projeto.
+    //
+    // Sai muito mais barato ACORDAR para rodar e voltar a dormir: uma rodada
+    // leva ~3 minutos, o que dá ~36 horas por mês. Fica fora da senha porque
+    // quem chama é uma máquina; o que autoriza é o token.
+    if (url.pathname === '/api/rodar-agendado') {
+      const token = process.env.CRON_TOKEN
+      const enviado = url.searchParams.get('token') || (req.headers.authorization || '').replace(/^Bearer /, '')
+      if (!token) return json(res, { erro: 'CRON_TOKEN não configurado neste servidor' }, 501)
+      if (enviado !== token) return json(res, { erro: 'token inválido' }, 401)
+      if (rodadaAtual()) return json(res, { ok: true, jaRodando: true })
+      // Espera a rodada TERMINAR antes de responder: se responder na hora, o
+      // Render pode suspender a instância no meio da coleta.
+      try {
+        const registro = await rodar({ manual: false })
+        return json(res, {
+          ok: true,
+          itensLidos: registro.itensLidos,
+          produtosNovos: registro.produtosNovos,
+          oportunidades: registro.oportunidades,
+          erros: registro.erros
+        })
+      } catch (erro) {
+        return json(res, { ok: false, erro: erro.message }, 500)
+      }
+    }
+
+    // Sinal de vida para o Render saber que a instância subiu.
+    if (url.pathname === '/saude') {
+      // Fora da senha de propósito: é como o Render sabe que a instância subiu.
+      return json(res, { ok: true, guardando: ondeGuarda() })
+    }
+
     // ---- porta de entrada ----
     // Só existe quando KIWI_SENHA está no ambiente. Na máquina de casa não
     // está, e o app abre direto, como sempre abriu.
@@ -631,12 +668,6 @@ const servidor = createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
         return res.end(paginaDeLogin())
       }
-    }
-
-    // Sinal de vida para o Render saber que a instância subiu.
-    if (url.pathname === '/saude') {
-      // Fora da senha de propósito: é como o Render sabe que a instância subiu.
-      return json(res, { ok: true, guardando: ondeGuarda() })
     }
 
     if (url.pathname.startsWith('/api')) return await api(req, res, url)

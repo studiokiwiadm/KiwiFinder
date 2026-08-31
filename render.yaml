@@ -44,5 +44,15 @@ services:
       - key: SUPABASE_SERVICE_KEY
         sync: false
 
+      # Autoriza o agendador externo (GitHub Actions) a disparar a rodada sem
+      # senha de tela. Use o MESMO valor no secret CRON_TOKEN do repositório.
+      - key: CRON_TOKEN
+        generateValue: true
+
+      # Só se dois projetos dividirem o mesmo banco do Supabase — ver
+      # SUPABASE_PREFIXO no .env.example.
+      # - key: SUPABASE_PREFIXO
+      #   value: kiwi_
+
       - key: NODE_ENV
         value: production

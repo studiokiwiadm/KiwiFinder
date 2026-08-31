@@ -18,8 +18,12 @@
 //                sempre, então não pode viver dentro de um documento que é
 //                reescrito por inteiro a cada gravação.
 
-const TABELA_ESTADO = 'estado'
-const TABELA_HISTORICO = 'historico'
+// O plano free do Supabase dá 2 projetos ativos por organização. Com prefixo
+// configurável, dois apps dividem um projeto só e sobra slot — basta rodar o
+// esquema.sql trocando os nomes e apontar SUPABASE_PREFIXO aqui.
+const PREFIXO = process.env.SUPABASE_PREFIXO || ''
+const TABELA_ESTADO = PREFIXO + 'estado'
+const TABELA_HISTORICO = PREFIXO + 'historico'
 const ID_DOCUMENTO = 'kiwifinder'
 
 let base = null
