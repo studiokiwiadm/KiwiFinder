@@ -112,6 +112,14 @@ async function digitarComConferencia (loja, termo, modo) {
   return { ok: true, status: 200, html: '<html></html>', urlFinal: loja.origem, viaNavegador: true, digitado: true }
 }
 
+
+// Reavalia a marca "precisa de navegador" uma vez por dia. Mais que isso é
+// desperdício; menos, e o app fica preso a uma limitação que a loja já removeu.
+function precisaReavaliar (loja) {
+  if (!loja.navegadorReavaliadoEm) return true
+  return Date.now() - new Date(loja.navegadorReavaliadoEm).getTime() > 24 * 3600 * 1000
+}
+
 async function coletarDeVerdade (loja, termo, paginas = 1) {
   const config = db().config
   const url = montarUrlBusca(loja, termo)
@@ -132,6 +140,32 @@ async function coletarDeVerdade (loja, termo, paginas = 1) {
         return { itens: [], erro: `${loja.nome}: ${permissao.motivo}`, robotsProibe: true }
       }
       loja.robotsProibe = false
+    }
+
+    // "Precisa de navegador" é uma marca do passado, e site muda. A Amazon
+    // exigia navegador quando o app foi escrito; hoje a requisição comum traz
+    // 45 itens com preço e link em 1,2s, contra 43 em 5,4s pelo navegador —
+    // melhor E quatro vezes mais rápido.
+    //
+    // Em vez de confiar na marca para sempre, a loja é reavaliada de tempos em
+    // tempos: tenta o caminho barato e, se ele resolver, a marca cai. Custa uma
+    // requisição comum; economiza a abertura do navegador em toda rodada.
+    if (loja.precisaNavegador && !loja.buscaDigitada && precisaReavaliar(loja)) {
+      const barato = await buscar(proxima, { referer: loja.origem, tentativas: 1, usarCache: false })
+      loja.navegadorReavaliadoEm = agora()
+      if (barato.ok && !barato.bloqueado) {
+        const teste = extrairResultados(barato.html, barato.urlFinal, loja.seletores || null)
+        const uteis = teste.itens.filter(i => i.preco && i.url).length
+        if (uteis >= 3) {
+          loja.precisaNavegador = false
+          loja.motivoNavegador = null
+          emitir({ tipo: 'rodada', fase: 'aprendendo', texto: `${loja.nome} não precisa mais de navegador — ${uteis} itens por requisição comum` })
+          relatorio = relatorio || teste.relatorio
+          todos.push(...teste.itens)
+          proxima = pagina < paginas ? proximaPagina(teste.raiz, barato.urlFinal, pagina) : null
+          continue
+        }
+      }
     }
 
     // Loja cuja busca só existe em JavaScript não tem URL para chamar: o jeito
