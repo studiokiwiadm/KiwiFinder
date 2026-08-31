@@ -3,26 +3,68 @@
 // Três coisas importam aqui:
 // 1. Uma requisição por domínio de cada vez, com intervalo mínimo entre elas.
 //    Rajada paralela é o jeito mais rápido de virar IP bloqueado.
-// 2. Cabeçalhos de navegador de verdade. Sem isso, boa parte das lojas devolve
-//    403 ou uma página de desafio antes mesmo de olhar o que foi pedido.
+// 2. Dizer quem somos. O app se apresentava como Chrome, o que é o padrão do
+//    mercado e é mentira. Agora manda o próprio nome e um endereço que explica
+//    o que ele é — como faz o Googlebot. Custa acesso em algumas lojas, e é o
+//    preço de a loja poder decidir sobre nós.
 // 3. Distinguir "falhou" de "fui bloqueado" — o teste de compatibilidade
 //    depende dessa diferença para dar um motivo em vez de um erro genérico.
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+// Como o KiwiFinder se apresenta às lojas.
+//
+// Até aqui ele dizia ser um Chrome, o que é o padrão do mercado e é mentira: a
+// loja recebia "uma pessoa navegando" quando era um programa. É a única peça
+// que não sobrevive ao critério que o resto do app adota — obedecer robots,
+// respeitar recusa, ler só o que é publicado.
+//
+// O Googlebot se identifica assim: `Googlebot/2.1 (+http://www.google.com/bot.html)`.
+// Nome próprio e um endereço explicando o que é. Isso dá à loja a chance de
+// decidir sobre NÓS: liberar, limitar o ritmo, ou barrar pelo nome no
+// robots.txt. Ela não tinha essa chance antes.
+//
+// O custo é real: loja com proteção agressiva provavelmente bloqueia assim que
+// pararmos de parecer navegador. Mas se ela bloqueia o KiwiFinder identificado,
+// essa é a resposta dela — e o app já sabe respeitar resposta.
+const NOME_DO_ROBO = 'KiwiFinder'
+const VERSAO = '2.0'
+const PAGINA_DO_ROBO = process.env.KIWI_URL_PUBLICA || 'https://kiwifinder.onrender.com/sobre'
+
+const UA_NAVEGADOR = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
-const CABECALHOS = {
-  'User-Agent': UA,
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-  'Cache-Control': 'no-cache',
-  'Pragma': 'no-cache',
-  'Sec-Fetch-Dest': 'document',
-  'Sec-Fetch-Mode': 'navigate',
-  'Sec-Fetch-Site': 'none',
-  'Sec-Fetch-User': '?1',
-  'Upgrade-Insecure-Requests': '1'
+const UA_IDENTIFICADO = `${NOME_DO_ROBO}/${VERSAO} (+${PAGINA_DO_ROBO})`
+
+// Ligável para dar para medir o estrago antes de decidir. `identificarSe` sai
+// como ligado por padrão; KIWI_ANONIMO=1 volta ao comportamento antigo.
+const UA = process.env.KIWI_ANONIMO === '1' ? UA_NAVEGADOR : UA_IDENTIFICADO
+
+export function comoNosApresentamos () {
+  return UA
 }
+
+// Os cabeçalhos `Sec-Fetch-*` e `Upgrade-Insecure-Requests` são emitidos por
+// navegador ao navegar, e mandá-los era parte do disfarce: diziam "isto é uma
+// aba se abrindo". Um robô declarado não os manda — sobra o essencial, que é
+// dizer quem é, o que aceita e em que idioma.
+const CABECALHOS = process.env.KIWI_ANONIMO === '1'
+  ? {
+      'User-Agent': UA,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1'
+    }
+  : {
+      'User-Agent': UA,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+      'From': process.env.KIWI_CONTATO || ''
+    }
 
 // Intervalo mínimo entre dois acessos ao MESMO domínio. Domínios diferentes
 // correm em paralelo, então isso não é o que segura a rodada — 700ms continua

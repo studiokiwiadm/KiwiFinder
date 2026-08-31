@@ -751,6 +751,17 @@ const servidor = createServer(async (req, res) => {
       return json(res, { resultados: saida })
     }
 
+    // A página que o robô cita em toda requisição. Fica FORA da senha de
+    // propósito: quem precisa dela é o administrador de uma loja olhando os
+    // próprios registros, e ele não tem conta aqui.
+    if (url.pathname === '/sobre') {
+      const arquivo = join(PUBLICO, 'sobre.html')
+      if (existsSync(arquivo)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+        return res.end(await readFile(arquivo))
+      }
+    }
+
     // Sinal de vida para o Render saber que a instância subiu.
     if (url.pathname === '/saude') {
       // Fora da senha de propósito: é como o Render sabe que a instância subiu.

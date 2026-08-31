@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KiwiFinder — sobre este robô</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    max-width: 62ch; margin: 0 auto; padding: 48px 24px 96px;
+    font: 16px/1.65 -apple-system, "Segoe UI", system-ui, sans-serif;
+    color: #1c1c1e; background: #fff;
+  }
+  @media (prefers-color-scheme: dark) { body { color: #e8e8ea; background: #16171a; } }
+  h1 { font-size: 1.9rem; letter-spacing: -0.03em; margin: 0 0 6px; }
+  h2 { font-size: 1.1rem; margin: 34px 0 8px; }
+  .sub { color: #6b6b73; margin: 0 0 32px; }
+  code, pre { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.9em; }
+  pre { background: rgba(127,127,127,0.12); padding: 12px 14px; border-radius: 10px; overflow-x: auto; }
+  a { color: #3f7d20; }
+  @media (prefers-color-scheme: dark) { a { color: #9ccc65; } }
+</style>
+</head>
+<body>
+
+<h1>KiwiFinder</h1>
+<p class="sub">Esta página existe porque o nosso robô cita o endereço dela em toda
+requisição. Se você administra uma loja e chegou aqui, é daqui que dá para nos
+liberar, limitar ou barrar.</p>
+
+<h2>O que é</h2>
+<p>O KiwiFinder é um comparador de preços. Ele acompanha o preço de produtos que
+as pessoas escolheram acompanhar e avisa quando cai. Quando alguém decide
+comprar, o clique vai para a loja onde o produto está mais barato.</p>
+<p>Ou seja: ele existe para <strong>mandar comprador para a sua loja</strong>, não
+para copiar seu catálogo.</p>
+
+<h2>Como ele se identifica</h2>
+<pre>KiwiFinder/2.0 (+https://kiwifinder.onrender.com/sobre)</pre>
+<p>Ele não se disfarça de navegador. Se você vir esse nome nos seus registros, é
+ele — e você pode decidir o que fazer a respeito.</p>
+
+<h2>O que ele lê, e com que frequência</h2>
+<ul>
+  <li>A <strong>página de busca</strong>, para descobrir se a loja tem o produto que
+      alguém procura.</li>
+  <li>A <strong>página do anúncio</strong>, para ler o preço atual, a condição de
+      pagamento e cupons anunciados.</li>
+  <li>O <strong>sitemap</strong>, quando a loja publica um.</li>
+</ul>
+<p>No máximo uma requisição por vez para cada loja, com pelo menos 0,7 segundo
+entre elas. Se a loja responder <code>429</code> ou <code>503</code>, ele aumenta
+esse intervalo sozinho e volta muito mais devagar.</p>
+
+<h2>O que ele NÃO faz</h2>
+<ul>
+  <li>Não ignora o <code>robots.txt</code>. Caminho proibido não é buscado.</li>
+  <li>Não contorna bloqueio. Se a loja recusa a requisição, ele registra a recusa
+      e para de tentar — não abre navegador nem troca de endereço para insistir.</li>
+  <li>Não copia descrição, ficha técnica nem imagem. Guarda o preço, o título do
+      anúncio e o link. A foto é exibida direto do servidor da loja.</li>
+  <li>Não republica seu catálogo. Cada produto mostrado tem um link que leva
+      para você.</li>
+</ul>
+
+<h2>Como nos bloquear</h2>
+<p>Basta escrever isto no seu <code>robots.txt</code>:</p>
+<pre>User-agent: KiwiFinder
+Disallow: /</pre>
+<p>Ele passa a obedecer na leitura seguinte, sem que você precise falar com
+ninguém. Se preferir apenas limitar partes do site, as regras normais de
+<code>Allow</code> e <code>Disallow</code> valem igual.</p>
+
+<h2>Prefere mandar um feed?</h2>
+<p>É melhor para os dois lados: dado limpo, com EAN e estoque, e nenhuma leitura
+do seu site. Se você já publica um feed para o Google Shopping ou está em alguma
+rede de afiliados, é o mesmo arquivo — fale com a gente.</p>
+
+<p style="margin-top:40px"><a href="/">← voltar para o KiwiFinder</a></p>
+
+</body>
+</html>
