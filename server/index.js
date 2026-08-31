@@ -19,7 +19,7 @@ import { interpretar } from './nlp.js'
 import { rodar, iniciarAgendador, aoProgredir, resumoProduto, resumoGeral, rodadaAtual, serieDiaria, precisaAtualizar, adicionarOfertaManual } from './engine.js'
 import { limparPerfisOrfaos } from './navegador.js'
 import { LOJAS_CONHECIDAS } from './library.js'
-import { aplicarAfiliado, precisaDivulgar, TEXTO_DIVULGACAO, PROGRAMAS_CONHECIDOS } from './afiliado.js'
+import { aplicarAfiliado, temAfiliado, precisaDivulgar, TEXTO_DIVULGACAO, PROGRAMAS_CONHECIDOS } from './afiliado.js'
 import { exigeSenha, sessaoValida, senhaConfere, criarCookieDeSessao, cookieDeSaida, paginaDeLogin } from './auth.js'
 
 const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)))
@@ -120,7 +120,12 @@ function produtoPublico (produto) {
         // A URL que a pessoa clica de fato: com o código de afiliado quando a
         // loja tem um configurado. `url` continua sendo a original, que é o
         // que o app usa para reler a página.
-        urlSaida: aplicarAfiliado(o.url, loja && loja.afiliado, { awinaffid: dados.config.awinaffid }),
+        // Link visível: o do próprio KiwiFinder, que redireciona por baixo.
+        // Só vira /ir/ quando há afiliado configurado — sem afiliado, mandar a
+        // pessoa dar um pulo a mais no nosso servidor não serviria para nada.
+        urlSaida: temAfiliado(loja && loja.afiliado, { awinaffid: dados.config.awinaffid })
+          ? `/ir/${o.id}`
+          : o.url,
         titulo: o.titulo,
         score: o.score,
         atualizadoEm: o.atualizadoEm,
@@ -683,6 +688,36 @@ const servidor = createServer(async (req, res) => {
       } catch (erro) {
         return json(res, { ok: false, erro: erro.message }, 500)
       }
+    }
+
+    // ---- saída para a loja ----
+    /**
+     * O link que a pessoa vê é o NOSSO, não o da rede de afiliados.
+     *
+     * `https://www.awin1.com/cread.php?awinmid=31355&awinaffid=3067039&ued=...`
+     * é o endereço técnico do redirecionador da Awin. Ele funciona, mas quem
+     * passa o mouse em cima lê um domínio que não conhece, cheio de números —
+     * e desconfia. Com razão: é exatamente com essa cara que golpe se parece.
+     *
+     * Então o link visível vira `/ir/of_123`, no domínio do próprio KiwiFinder,
+     * e o servidor redireciona por baixo. A Awin continua registrando o clique
+     * normalmente (o navegador passa por lá antes de chegar na loja) — só que a
+     * pessoa vê o nome em que ela confia.
+     *
+     * É o que todo comparador de preço faz, e é o motivo de nenhum deles
+     * mostrar link de rede de afiliados na tela.
+     */
+    if (url.pathname.startsWith('/ir/')) {
+      const id = decodeURIComponent(url.pathname.slice(4))
+      const dados = db()
+      const oferta = dados.ofertas.find(o => o.id === id)
+      if (!oferta || !oferta.url) return naoAchou(res, 'oferta não encontrada')
+      const loja = dados.lojas.find(l => l.id === oferta.lojaId)
+      const destino = aplicarAfiliado(oferta.url, loja && loja.afiliado, { awinaffid: dados.config.awinaffid })
+      // 302 e não 301: o destino muda quando o anúncio muda de endereço, e um
+      // 301 ficaria gravado no navegador da pessoa para sempre.
+      res.writeHead(302, { Location: destino, 'Cache-Control': 'no-store' })
+      return res.end()
     }
 
     // Sinal de vida para o Render saber que a instância subiu.
