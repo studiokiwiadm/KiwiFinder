@@ -35,8 +35,12 @@ export function configurado () {
 
 function iniciar () {
   if (base) return
-  base = String(process.env.SUPABASE_URL).replace(/\/$/, '') + '/rest/v1'
-  chave = String(process.env.SUPABASE_SERVICE_KEY)
+  // A tela do Supabase mostra o endereço já com /rest/v1 no fim, e é natural
+  // copiar assim. Aceitar as duas formas evita um /rest/v1/rest/v1 que só
+  // apareceria como "não achei nada" bem mais tarde.
+  const cru = String(process.env.SUPABASE_URL).trim().replace(/\/+$/, '')
+  base = cru.replace(/\/rest\/v1$/, '') + '/rest/v1'
+  chave = String(process.env.SUPABASE_SERVICE_KEY).trim()
 }
 
 async function chamar (caminho, opcoes = {}) {
