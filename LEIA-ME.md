@@ -13,84 +13,99 @@ lojas, guarda o histórico de preço e avisa quando aparece oportunidade.
 
 
 
-## Colocar online (GitHub + Supabase + Render)
+## Colocar online
 
-O app roda de dois jeitos, decididos por variáveis de ambiente. **Sem nenhuma
-variável, nada muda**: grava em `dados/kiwifinder.json` e abre sem senha, como
-sempre fez nesta máquina. Com elas, guarda no Supabase e pede senha.
+São três serviços e cerca de vinte minutos. A ordem importa: cada passo produz
+uma informação que o passo seguinte pede.
 
-### 1. GitHub
+Antes de começar: **nada disso muda o app aqui em casa**. Sem as variáveis de
+ambiente, ele continua gravando em `dados/kiwifinder.json` e abrindo sem senha,
+como sempre.
 
-Esta pasta já é um repositório próprio (`git init` feito, primeiro commit
-feito). Ela continua morando dentro do vault, mas o vault **não a rastreia
-mais** — é o que impede as notas pessoais de irem junto para a nuvem.
+### Passo 1 — Supabase (o banco)
 
-Crie o repositório no GitHub **privado** e conecte:
+Crie um projeto novo. Ele pede uma senha para o banco: guarde num lugar
+qualquer, você não vai usar.
 
-```
-git remote add origin https://github.com/SEU_USUARIO/kiwifinder.git
-git push -u origin main
-```
+Quando o projeto terminar de subir, abra o **SQL Editor** no menu da esquerda,
+clique em **New query**, e cole ali o conteúdo do arquivo `esquema.sql` que está
+nesta pasta. Clique em **Run**. Isso cria as duas tabelas onde os dados vão
+morar. Não tem retorno visível além de "Success" — está certo assim.
 
-Antes de empurrar, confira o que vai: `git status --short`. Devem aparecer 30
-arquivos de código. Se aparecer `dados/`, `.env` ou `node_modules`, **pare** —
-o `.gitignore` foi mexido.
+Agora vá em **Project Settings → API**. Você precisa de dois valores dessa tela:
 
-### 2. Supabase
+O **Project URL**, lá em cima, parecido com `https://abcdefgh.supabase.co`.
 
-1. Crie o projeto.
-2. **SQL Editor** → cole o conteúdo de `esquema.sql` → *Run*. Cria as duas
-   tabelas (`estado` e `historico`) com RLS ligado e sem política de acesso —
-   ou seja, a chave pública não lê nada.
-3. **Project Settings → API**, anote:
-   - `Project URL` → vai em `SUPABASE_URL`
-   - `service_role` (a secreta, **não** a `anon`) → vai em `SUPABASE_SERVICE_KEY`
+E, mais abaixo, em *Project API keys*, a chave **`service_role`**. Ela vem
+escondida atrás de um "Reveal". **Não é a `anon`** — a `anon` é pública e não
+serve aqui.
 
-A `service_role` passa por cima do RLS e nunca chega ao navegador: só o
-servidor a usa. Se vazar, quem tiver a chave lê e escreve o banco inteiro —
-por isso ela vive só nas variáveis de ambiente.
-
-Para levar o que já existe nesta máquina (hoje: 6 lojas, 4 buscas, 82 produtos
-e o histórico de preço, que é o que não dá para refazer):
+**Essa chave é o banco inteiro na mão de quem a tiver.** Não me mande por
+mensagem, não cole em lugar nenhum além dos dois destinos abaixo. Crie um
+arquivo chamado `.env` nesta pasta e escreva assim:
 
 ```
-node importar-para-supabase.mjs
+SUPABASE_URL=https://abcdefgh.supabase.co
+SUPABASE_SERVICE_KEY=a-service-role-que-você-revelou
 ```
 
-### 3. Render
+O `.env` está no `.gitignore`, então ele nunca vai para o GitHub. Me avise
+quando salvar: eu rodo a importação e subo o seu histórico de preço, que é a
+única coisa aqui que não dá para refazer.
 
-**New + → Blueprint**, apontando para o repositório. O `render.yaml` já diz o
-resto. Ele vai pedir três valores:
+### Passo 2 — Render (o servidor)
 
-| variável | o que é |
-|---|---|
-| `KIWI_SENHA` | a senha da tela. **Obrigatória online** |
-| `SUPABASE_URL` | o Project URL |
-| `SUPABASE_SERVICE_KEY` | a chave `service_role` |
+Em **New +**, escolha **Blueprint** (não "Web Service"). Aponte para o
+repositório `KiwiFinder`. O Render acha o `render.yaml` sozinho e já sabe como
+construir e iniciar — você não precisa preencher build command nem start
+command.
 
-O `SESSION_SECRET` o próprio Render gera.
+Ele vai perguntar três valores. **`KIWI_SENHA`** é a senha da tela: invente uma,
+é ela que impede qualquer um com o endereço de mexer nos seus produtos.
+**`SUPABASE_URL`** e **`SUPABASE_SERVICE_KEY`** são os dois do passo 1.
+
+Os outros dois (`SESSION_SECRET` e `CRON_TOKEN`) o Render sorteia sozinho.
+
+Quando o deploy terminar, faça duas coisas nessa tela: **copie o endereço** que
+ele te deu (algo como `https://kiwifinder.onrender.com`) e vá na aba
+**Environment** para **copiar o valor do `CRON_TOKEN`**. Os dois são o passo 3.
+
+### Passo 3 — GitHub (o despertador)
+
+O Render suspende o serviço depois de 15 minutos parado, e o agendador de dentro
+do app dorme junto. Quem acorda ele de hora em hora é o GitHub.
+
+No repositório, vá em **Settings → Secrets and variables → Actions** e clique em
+**New repository secret** duas vezes:
+
+`KIWI_URL`, com o endereço do Render.
+
+`CRON_TOKEN`, com o valor que você copiou do Environment.
+
+Pronto. Para não esperar a hora cheia, vá na aba **Actions**, clique em
+**Rodada de preços** e depois em **Run workflow**. Em uns três minutos ele volta
+com quantos itens leu.
 
 ### O que muda ao sair desta máquina
 
-Três coisas, e vale saber antes:
+**A Go Imports para de funcionar.** A busca dela só existe em JavaScript, e no
+plano free do Render não há Chrome instalado. As outras cinco lojas leem por
+requisição comum e continuam iguais. O que você já coletou lá fica no histórico;
+só para de atualizar. A saída definitiva é o feed de afiliado, que é para onde a
+v2 já aponta.
 
-**1. Loja que precisa de navegador para de funcionar.** No plano free do Render
-não existe Chrome instalado, e o app não baixa navegador (o build roda com
-`--ignore-scripts` de propósito). Hoje isso afeta a **Go Imports**, cuja busca
-só existe em JavaScript. As outras lojas leem por requisição comum e continuam
-iguais. A saída definitiva é a mesma da v2: feed de afiliado, que dispensa
-navegador e ainda vem com dado melhor.
+**O primeiro acesso do dia demora cerca de um minuto.** O serviço estava
+dormindo. É o preço de não queimar a cota — e a cota é o motivo de tudo isso
+existir: o Render dá 750 horas de instância por mês para a conta inteira, e um
+serviço ligado dia e noite come 730. Acordando só para rodar, o KiwiFinder gasta
+umas 36 e sobra espaço para os seus outros projetos.
 
-**2. O serviço dorme.** O plano free suspende a instância depois de ~15 minutos
-sem acesso, e o agendador dorme junto — as rodadas de hora em hora só
-acontecem enquanto alguém está com o app aberto. Duas saídas: um ping externo
-de 10 em 10 minutos (o free dá 750 h/mês, que cobre uma instância ligada o mês
-todo), ou plano pago. Enquanto isso, "atualizar ao abrir" continua valendo e é
-o que segura o uso real.
+**Preço passa a vir do IP do servidor**, que está em Oregon. Para preço de
+produto costuma dar no mesmo; para frete, não.
 
-**3. Preço vem do IP do servidor, não do seu.** Loja que mostra preço ou frete
-por região vai responder pela região do datacenter (Oregon, na configuração
-atual). Para preço de produto costuma dar no mesmo; para frete, não.
+**O Supabase pausa projeto free depois de uma semana parado.** As rodadas de
+hora em hora resolvem isso sozinhas — mas se você desligar o despertador, é bom
+saber.
 
 ## Da v1 para a v2 — o que mudou e por quê
 
