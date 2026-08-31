@@ -768,8 +768,9 @@ async function enriquecer (produto, limitePorRodada) {
   }
   if (pagina.mpn && !produto.mpn) { produto.mpn = pagina.mpn; mudou = true }
   // A página do produto tem a foto de catálogo, que é a melhor fonte que
-  // existe — melhor que o que vem na listagem de busca.
-  if (pagina.imagem && (!produto.imagem || !fotoAceitavel(produto.imagem))) {
+  // existe — melhor que o que vem na listagem de busca, e é a única capaz de
+  // dizer qual foto a loja considera principal.
+  if (pagina.imagem && produto.imagem !== pagina.imagem) {
     produto.imagem = pagina.imagem
     mudou = true
   }
@@ -835,7 +836,15 @@ function guardarDescontos (oferta, pagina) {
  *  guardada não presta, é a chance mais barata de trocar por uma boa. */
 function aproveitarFotoDaPagina (produto, pagina) {
   if (!pagina || !pagina.imagem) return
-  if (produto.imagem && fotoAceitavel(produto.imagem)) return
+  // A foto da PÁGINA sempre ganha da foto da listagem, mesmo quando a guardada
+  // parece boa.
+  //
+  // Motivo concreto: as fotos de cliente da Amazon guardadas antes do conserto
+  // passam por qualquer filtro de URL — a mesma imagem servida em tamanho
+  // cheio não tem marcador nenhum. Só a página distingue, porque é lá que a
+  // loja declara qual é a principal (`landingImage`). Enquanto a regra fosse
+  // "troca só se a guardada for ruim", elas ficariam para sempre.
+  if (produto.imagem === pagina.imagem) return
   produto.imagem = pagina.imagem
 }
 
