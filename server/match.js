@@ -11,11 +11,20 @@ import { normalizar, compacto, tokensDe, _interno } from './nlp.js'
 
 const { acharMarca, acharCategoria, acharSpecs } = _interno
 
+// Marcas de anúncio importado, cujo preço exibido não é o que se paga: falta
+// imposto de importação e frete internacional.
+const INTERNACIONAL = ['importado', 'importada', 'versao internacional', 'versão internacional',
+  'global version', 'international version', 'envio do exterior', 'produto importado',
+  'imported', 'eu plug', 'us plug', 'plugue americano', 'plug americano']
+
 // Palavras que denunciam acessório do produto, não o produto.
 const ACESSORIOS = ['suporte', 'capa', 'case ', 'capinha', 'pelicula', 'película', 'cabo',
   'adaptador', 'carregador', 'fonte para', 'bateria para', 'protetor', 'skin', 'adesivo',
   'bolsa', 'estojo', 'filtro para', 'refil', 'kit de limpeza', 'porta ', 'organizador',
   'mousepad', 'base para', 'mesa para', 'bag', 'sleeve', 'controle remoto para',
+  // impressora 3D tem um ecossistema inteiro de acessório que usa o nome dela
+  'gabinete', 'enclosure', 'bandeja', 'bico ', 'nozzle', 'hotend', 'placa de construcao',
+  'filamento', 'spool', 'ventilacao', 'ventilação',
   // peças e consumíveis: o que aparece quando se procura por eletrodoméstico
   'pote', 'potes', 'tampa', 'tampas', 'reposicao', 'reposição', 'acessorio', 'acessório',
   'pacote com', 'unidades', 'peças de', 'pecas de', 'compativel com', 'compatível com',
@@ -213,10 +222,65 @@ export function pontuar (interp, item, config = {}) {
   const usado = USADOS.find(u => tituloNorm.includes(u))
   if (usado) return { score: 0, aceito: false, motivos: [`anúncio de ${usado}`], eliminado: true }
 
+  // Anúncio importado: o preço da tela não é o preço final.
+  //
+  // A Amazon lista vendedor internacional junto com o nacional, e ali o valor
+  // exibido ainda vai receber imposto de importação e frete internacional —
+  // que podem passar de 90% do produto. Comparar esse número com o de uma loja
+  // brasileira é comparar coisas diferentes, e um comparador que faz isso está
+  // mentindo mesmo com o número certo.
+  //
+  // Some do comparativo em vez de aparecer com ressalva: quem procura preço
+  // quer saber quanto vai pagar, e esse número o anúncio não dá.
+  const importado = INTERNACIONAL.find(t => tituloNorm.includes(t))
+  if (importado) {
+    return {
+      score: 0,
+      aceito: false,
+      motivos: [`anúncio importado ("${importado}") — o preço não inclui imposto de importação`],
+      eliminado: true
+    }
+  }
+
   const acessorio = ACESSORIOS.find(a => tituloNorm.includes(normalizar(a)))
   const pediuAcessorio = acessorio && normalizar(interp.tokens ? interp.tokens.join(' ') : '').includes(normalizar(acessorio).trim())
   if (acessorio && !pediuAcessorio) {
     return { score: 0, aceito: false, motivos: [`parece acessório ("${acessorio.trim()}")`], eliminado: true }
+  }
+
+  // "PARA" é o acessório se anunciando.
+  //
+  // Nenhuma lista de palavras dá conta: "TopCube Gabinete Para Impressora 3D
+  // Bambu Lab A1 Combo" tem todas as palavras da busca e passava direto, virando
+  // um produto com preço de R$ 919 no lugar de uma impressora de R$ 5.500.
+  //
+  // O padrão é da língua, não do catálogo: acessório se descreve como "X PARA
+  // Y", e o que a pessoa procurou é o Y. Quando as palavras da busca só
+  // aparecem DEPOIS do "para", o anúncio é de outra coisa — a menos que a
+  // própria busca tenha um "para" (alguém procurando "capa para iphone").
+  const marcador = tituloNorm.match(/\b(para|compativel com|compatível com)\b/)
+  // Quem procurou "capa para iphone" quer mesmo o acessório: nesse caso a
+  // regra não vale. A busca já foi interpretada, então a pista está nos tokens.
+  const buscaTemPara = /\b(para|compativel|acessorio|capa|suporte|gabinete)\b/
+    .test(normalizar((interp.tokens || []).join(' ')))
+  if (marcador && !buscaTemPara) {
+    const antes = tituloNorm.slice(0, marcador.index)
+    const depois = tituloNorm.slice(marcador.index)
+    const chaves = (interp.tokens || []).filter(t => t.length > 1)
+    // Contar dos dois lados, e não exigir "nenhuma antes": em "Combo De
+    // Impressora 3d Unitak3d PARA Bambu Lab A1 Combo", a palavra "combo"
+    // aparece dos dois lados e sozinha derrubava a regra. O que denuncia o
+    // acessório é o produto procurado estar concentrado DEPOIS do "para".
+    const naFrente = chaves.filter(t => antes.includes(t)).length
+    const atras = chaves.filter(t => depois.includes(t)).length
+    if (atras >= 2 && atras > naFrente) {
+      return {
+        score: 0,
+        aceito: false,
+        motivos: [`é acessório "para" o produto, não o produto`],
+        eliminado: true
+      }
+    }
   }
 
   const tokensConsultaSet = new Set(interp.tokens || [])

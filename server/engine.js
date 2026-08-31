@@ -9,7 +9,7 @@ import { db, salvar, proximoId, agora } from './store.js'
 import { buscar, robotsPermite } from './net.js'
 import { buscarComFallback, buscarDigitando } from './navegador.js'
 import { buscarPorSitemap } from './sitemap.js'
-import { extrairResultados, extrairProduto, proximaPagina, deduplicar } from './extract.js'
+import { extrairResultados, extrairProduto, proximaPagina, deduplicar, fotoAceitavel } from './extract.js'
 import { interpretar, tokensDe, compacto } from './nlp.js'
 import { pontuar, filtrarPorSanidadeDePreco, chaveProduto, mesmoProduto, mesmoProdutoNaBusca, marcaConfiavel } from './match.js'
 import { aplicarCupom } from './cupom.js'
@@ -595,7 +595,13 @@ async function gravarConsulta ({ consulta, interp, aceitos, lidos, rejeitados, l
       }
       dados.produtos.push(produto)
     } else {
-      if (!produto.imagem && item.imagem) produto.imagem = item.imagem
+      // Troca também quando a foto guardada é ruim: as fotos de cliente da
+      // Amazon (`aicid=community`, 154x154) ficaram gravadas antes de o filtro
+      // existir, e sem isto continuariam para sempre — o app só preenchia
+      // imagem quando não havia nenhuma.
+      if (item.imagem && (!produto.imagem || !fotoAceitavel(produto.imagem))) {
+        produto.imagem = item.imagem
+      }
       if (!produto.gtin && item.gtin) { produto.gtin = item.gtin; produto.chave = chave.chave; produto.chaveForte = true }
       // Produto antigo pode ter guardado o vendedor no lugar do fabricante.
       const marcaBoa = marcaConfiavel(item, loja)

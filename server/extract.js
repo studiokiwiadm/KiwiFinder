@@ -330,6 +330,12 @@ function textoDe (v) {
   return String(v)
 }
 
+/** Descarta foto de cliente venha ela de onde vier (JSON-LD, microdata, HTML). */
+export function fotoAceitavel (src) {
+  if (!src || typeof src !== 'string') return false
+  return !IMAGEM_DE_CLIENTE.test(src) && !IMAGEM_LIXO.test(src)
+}
+
 function imagemDe (v) {
   if (!v) return null
   if (typeof v === 'string') return v
@@ -608,6 +614,15 @@ function melhorNome (bloco) {
 // acabava mostrando um mosaico de ícones no lugar da foto.
 const IMAGEM_LIXO = /(sprite|transparent-pixel|grey-pixel|pixel\.gif|blank\.|placeholder|loading|spinner|prime|badge|selo|icon|logo|star|rating|1x1|spacer)/i
 
+// Foto tirada por cliente, não pela loja.
+//
+// A Amazon mistura, na mesma listagem, a foto oficial do produto e as fotos que
+// compradores enviaram na avaliação — estas vêm marcadas com `aicid=community`.
+// A Nespresso Essenza Mini no KiwiFinder acabou com três fotos amadorais, de
+// 154x154 pixels, no meio de cards com foto de catálogo. Fica claro na tela que
+// aquele produto "não é do mesmo lugar" que os outros.
+const IMAGEM_DE_CLIENTE = /(aicid=community|user-?generated|customer-?image|review-?image)/i
+
 function melhorImagem (bloco, urlBase) {
   const candidatas = []
   for (const el of elementos(bloco)) {
@@ -616,6 +631,7 @@ function melhorImagem (bloco, urlBase) {
       (attr(el, 'srcset').split(',')[0] || '').trim().split(' ')[0]
     if (!src || src.startsWith('data:')) continue
     if (IMAGEM_LIXO.test(src)) continue
+    if (IMAGEM_DE_CLIENTE.test(src)) continue
     // Miniatura declarada pequena não serve — a foto do produto é a maior.
     const largura = Number(attr(el, 'width')) || 0
     const altura = Number(attr(el, 'height')) || 0
