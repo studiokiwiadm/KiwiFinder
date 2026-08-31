@@ -595,12 +595,18 @@ async function gravarConsulta ({ consulta, interp, aceitos, lidos, rejeitados, l
       }
       dados.produtos.push(produto)
     } else {
-      // Troca também quando a foto guardada é ruim: as fotos de cliente da
-      // Amazon (`aicid=community`, 154x154) ficaram gravadas antes de o filtro
-      // existir, e sem isto continuariam para sempre — o app só preenchia
-      // imagem quando não havia nenhuma.
-      if (item.imagem && (!produto.imagem || !fotoAceitavel(produto.imagem))) {
-        produto.imagem = item.imagem
+      // Foto guardada que não presta é trocada, e — se não houver substituta —
+      // APAGADA.
+      //
+      // As fotos de cliente da Amazon (`aicid=community`, 154x154) foram
+      // gravadas antes de o filtro existir. Só trocar não resolvia: agora que o
+      // extrator rejeita essas fotos, a rodada não traz substituta, e a ruim
+      // ficaria para sempre. Sem foto o cartão usa o espaço reservado e mantém
+      // o padrão da grade; com foto amadora ele destoa de todos os outros.
+      const guardadaPresta = produto.imagem && fotoAceitavel(produto.imagem)
+      if (!guardadaPresta) {
+        if (item.imagem) produto.imagem = item.imagem
+        else if (produto.imagem) delete produto.imagem
       }
       if (!produto.gtin && item.gtin) { produto.gtin = item.gtin; produto.chave = chave.chave; produto.chaveForte = true }
       // Produto antigo pode ter guardado o vendedor no lugar do fabricante.
@@ -752,7 +758,12 @@ async function enriquecer (produto, limitePorRodada) {
     mudou = true
   }
   if (pagina.mpn && !produto.mpn) { produto.mpn = pagina.mpn; mudou = true }
-  if (pagina.imagem && !produto.imagem) { produto.imagem = pagina.imagem; mudou = true }
+  // A página do produto tem a foto de catálogo, que é a melhor fonte que
+  // existe — melhor que o que vem na listagem de busca.
+  if (pagina.imagem && (!produto.imagem || !fotoAceitavel(produto.imagem))) {
+    produto.imagem = pagina.imagem
+    mudou = true
+  }
   // v2 não guarda mais a ficha técnica: é conteúdo copiado da página da loja,
   // não aparecia em lugar nenhum da tela e só existia porque veio junto na
   // leitura. Fica atrás de uma chave, desligada por padrão.
@@ -811,6 +822,14 @@ function guardarDescontos (oferta, pagina) {
  * a página atrás de cupom, aproveita e corrige o preço por lá, que é o valor
  * que a pessoa realmente vai encontrar ao clicar.
  */
+/** A página do anúncio é aberta várias vezes por outros motivos; quando a foto
+ *  guardada não presta, é a chance mais barata de trocar por uma boa. */
+function aproveitarFotoDaPagina (produto, pagina) {
+  if (!pagina || !pagina.imagem) return
+  if (produto.imagem && fotoAceitavel(produto.imagem)) return
+  produto.imagem = pagina.imagem
+}
+
 function corrigirPrecoPelaPagina (produto, oferta, pagina, loja) {
   const novo = pagina && pagina.preco
   if (!Number.isFinite(novo) || !Number.isFinite(oferta.preco)) return false
@@ -889,6 +908,7 @@ export async function conferirCupons (consulta, limite = 8) {
       const { resposta, pagina } = await lerPaginaDeProduto(oferta.url, loja, config)
       if (!resposta.ok || !pagina) return
       corrigirPrecoPelaPagina(produto, oferta, pagina, loja)
+      aproveitarFotoDaPagina(produto, pagina)
       if (guardarDescontos(oferta, pagina)) {
         achados++
         emitir({
