@@ -1,0 +1,17 @@
+{
+  "name": "kiwifinder-prototipo",
+  "version": "0.1.0",
+  "description": "KiwiFinder — Deal Finder pessoal. Protótipo: lojas de confiança com teste de compatibilidade, consultas, correspondência automática de produtos, histórico de preço e detecção de oportunidades.",
+  "private": true,
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

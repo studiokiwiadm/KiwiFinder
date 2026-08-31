@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KiwiFinder — Deal Finder</title>
+<meta name="description" content="KiwiFinder: encontre o melhor momento para comprar.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%238D6E4A'/%3E%3Ccircle cx='24' cy='24' r='18' fill='%23A5D26A'/%3E%3Ccircle cx='24' cy='24' r='13' fill='%23FAF9F5'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div class="kf-app" id="kf-app">
+
+  <!-- Cabeçalho: marca, conexão e conta -->
+  <header class="kf-topbar">
+    <div class="kf-marca">
+      <span class="kf-logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="34" height="34">
+          <circle cx="24" cy="24" r="22" fill="#8D6E4A"/>
+          <circle cx="24" cy="24" r="18" fill="#A5D26A"/>
+          <circle cx="24" cy="24" r="13" fill="#FAF9F5"/>
+          <g fill="#1C2119">
+            <ellipse cx="24" cy="16.5" rx="1.5" ry="2.3"/>
+            <ellipse cx="30" cy="19" rx="1.5" ry="2.3" transform="rotate(45 30 19)"/>
+            <ellipse cx="32.5" cy="25" rx="1.5" ry="2.3" transform="rotate(90 32.5 25)"/>
+            <ellipse cx="30" cy="31" rx="1.5" ry="2.3" transform="rotate(135 30 31)"/>
+            <ellipse cx="24" cy="33.5" rx="1.5" ry="2.3"/>
+            <ellipse cx="18" cy="31" rx="1.5" ry="2.3" transform="rotate(45 18 31)"/>
+            <ellipse cx="15.5" cy="25" rx="1.5" ry="2.3" transform="rotate(90 15.5 25)"/>
+            <ellipse cx="18" cy="19" rx="1.5" ry="2.3" transform="rotate(135 18 19)"/>
+            <ellipse cx="24" cy="25" rx="2" ry="2.6"/>
+          </g>
+        </svg>
+      </span>
+      <div class="kf-marca-texto">
+        <span class="kf-marca-nome">KiwiFinder</span>
+      </div>
+    </div>
+
+    <div class="kf-topbar-acoes">
+      <span class="kf-conexao" id="kf-conexao" title="Estado da conexão em tempo real">
+        <span class="kf-conexao-ponto" id="kf-conexao-ponto"></span>
+        <span class="kf-conexao-texto" id="kf-conexao-texto">conectando…</span>
+      </span>
+
+      <!-- Atualizar tudo: fica no cabeçalho para estar à mão em qualquer tela -->
+      <button type="button" class="kf-btn kf-btn-secundaria kf-btn-pequeno kf-atualizar-tudo"
+        id="kf-atualizar-tudo" data-action="painel.atualizar" title="Buscar preços agora em todas as lojas">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+          <path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>
+        </svg>
+        <span>Atualizar</span>
+      </button>
+
+      <!-- Conta: avatar que abre o menu com perfil, tema e ajustes -->
+      <div class="kf-conta">
+        <button type="button" class="kf-avatar" id="kf-avatar" data-action="conta.alternar"
+          aria-haspopup="menu" aria-expanded="false" aria-label="Sua conta">
+          <span class="kf-avatar-inicial" id="kf-avatar-inicial">G</span>
+        </button>
+        <div class="kf-conta-menu" id="kf-conta-menu" role="menu" hidden></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navegação principal: sidebar em telas largas, barra superior abaixo de 900px -->
+  <nav class="kf-sidebar" id="kf-sidebar" aria-label="Navegação principal">
+    <a href="#/painel" class="kf-nav-link" data-rota="painel">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z"/></svg>
+      <span>Painel</span>
+    </a>
+    <a href="#/consultas" class="kf-nav-link" data-rota="consultas">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M10 4a6 6 0 0 1 4.7 9.7l4.8 4.8-1.4 1.4-4.8-4.8A6 6 0 1 1 10 4zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+      <span>Buscas</span>
+    </a>
+    <a href="#/produtos" class="kf-nav-link" data-rota="produtos">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 7l8-4 8 4v10l-8 4-8-4V7zm8-1.9L6.2 8 12 10.9 17.8 8 12 5.1zM6 9.7v6.6l5 2.5v-6.6L6 9.7zm12 0l-5 2.5v6.6l5-2.5V9.7z"/></svg>
+      <span>Produtos</span>
+    </a>
+    <a href="#/lojas" class="kf-nav-link" data-rota="lojas">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-1.5 5H4.5L3 4zm1.8 7h14.4L18 20H6l-.9-9zM10 13v4h4v-4h-4z"/></svg>
+      <span>Lojas</span>
+    </a>
+    <a href="#/oportunidades" class="kf-nav-link" data-rota="oportunidades">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
+      <span>Oportunidades</span>
+      <span class="kf-nav-badge" id="kf-nav-badge-oportunidades" hidden>0</span>
+    </a>
+    <a href="#/ajustes" class="kf-nav-link" data-rota="ajustes">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm8.4 4a7.6 7.6 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.8 7.8 0 0 0-2-1.2L15.5 3h-4l-.4 2.6a7.8 7.8 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7.6 7.6 0 0 0 6.6 12a7.6 7.6 0 0 0 .1 1.2l-2 1.6 2 3.4 2.4-1c.6.5 1.3.9 2 1.2L11.5 21h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/></svg>
+      <span>Ajustes</span>
+    </a>
+
+    <!-- Recolher fica no rodapé da própria barra, não no cabeçalho: é uma ação
+         da barra, e ali ela some junto quando a barra encolhe. -->
+    <button type="button" class="kf-recolher" data-action="sidebar.alternar"
+      aria-label="Recolher o menu" title="Recolher o menu">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <path fill="currentColor" d="M14.6 6L16 7.4 11.4 12l4.6 4.6-1.4 1.4-6-6z"/>
+      </svg>
+      <span>Recolher</span>
+    </button>
+  </nav>
+
+  <!-- Conteúdo principal: preenchido dinamicamente pelo app.js -->
+  <main class="kf-main" id="kf-main" aria-live="polite">
+    <div class="kf-carregando-inicial">
+      <span class="kf-spinner" aria-hidden="true"></span>
+      <p>Carregando o KiwiFinder…</p>
+    </div>
+  </main>
+</div>
+
+<!-- Raiz para modais próprios (sem alert/confirm nativos) -->
+<div id="kf-modal-root"></div>
+
+<!-- Raiz para notificações discretas -->
+<div id="kf-toast-root" class="kf-toast-root" aria-live="polite" aria-atomic="true"></div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

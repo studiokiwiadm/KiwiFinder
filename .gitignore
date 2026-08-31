@@ -1,0 +1,17 @@
+# Dependência instalada por npm: reinstalável a partir do package.json, e o
+# playwright-core sozinho passa de 10 mil arquivos.
+node_modules/
+
+# Dados de uso: preços, histórico e o perfil do navegador (que passa de 800 MB).
+# Nada disso pode ir para um repositório público — e na nuvem quem guarda é o
+# Supabase, não o disco.
+dados/
+
+# Segredos: chave do Supabase, senha do app. NUNCA versionar.
+.env
+.env.local
+*.pem
+
+# Lixo de sistema
+Thumbs.db
+.DS_Store

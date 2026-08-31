@@ -1,0 +1,1386 @@
+/* ============================================================================
+   KiwiFinder — folha de estilo
+   ----------------------------------------------------------------------------
+   Direção: minimalismo tipo Apple. Três regras que valem para tudo aqui:
+
+   1. Contraste vem da tipografia e do espaço, não de caixa e borda. Quase nada
+      tem contorno; o que separa blocos é respiro.
+   2. Uma cor de destaque só, usada com parcimônia. Cor tem significado —
+      verde é preço caindo, vermelho é subindo. Se tudo é colorido, nada é.
+   3. Números são o conteúdo principal: peso leve, corpo grande, fonte tabular
+      para alinhar coluna com coluna.
+============================================================================ */
+
+/* ---------------------------------------------------------------- tokens */
+:root {
+  color-scheme: light;
+
+  /* "Cromo" é a moldura do app — cabeçalho e barra lateral. Fica um tom mais
+     escuro que o conteúdo nos DOIS temas: é o que dá a sensação de janela, com
+     a área de trabalho clara no meio. */
+  --kf-cromo: #e4e7ec;
+  --kf-cromo-fio: rgba(0, 0, 0, 0.1);
+  --kf-fundo: #fbfbfd;
+  --kf-superficie: #ffffff;
+  --kf-superficie-2: rgba(0, 0, 0, 0.035);
+  --kf-superficie-3: rgba(0, 0, 0, 0.06);
+  --kf-fio: rgba(0, 0, 0, 0.08);
+  --kf-fio-forte: rgba(0, 0, 0, 0.14);
+
+  --kf-texto: #1d1d1f;
+  --kf-texto-suave: #6e6e73;
+  /* Escurecido de #8e8e93 pra sair de 3.26:1 (reprovava AA) pra 4.64:1 contra
+     branco — ainda o tom "apagado" da hierarquia, só que legível. */
+  --kf-texto-tenue: #74747a;
+
+  /* Verde de marca escurecido de #4d9c2b pra #418425: no tom antigo, o botão
+     primário (texto branco sobre a cor) e os usos como texto direto (preço em
+     destaque, chip de marca) ficavam em 3.44:1 — abaixo do mínimo de AA. Com
+     este tom o contraste sobe pra ~4.6:1 sem descaracterizar a cor. */
+  --kf-primaria: #418425;
+  --kf-primaria-forte: #38751e;
+  --kf-primaria-fraca: rgba(65, 132, 37, 0.1);
+
+  /* Idem para queda/alerta: escurecidos só o suficiente pra cruzar 4.5:1
+     quando usados como texto (diffs, selos, avaliação), mantendo o matiz. */
+  --kf-queda: #1d8649;
+  --kf-alta: #d7382e;
+  --kf-alerta: #a46807;
+
+  --kf-sombra-1: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px rgba(0, 0, 0, 0.05);
+  /* Elevação intermediária pro hover de cartão — mais presença que a sombra
+     de repouso, mas mais discreta que a de modal/flutuante. */
+  --kf-sombra-hover: 0 2px 10px rgba(0, 0, 0, 0.07), 0 10px 28px rgba(0, 0, 0, 0.08);
+  --kf-sombra-2: 0 2px 6px rgba(0, 0, 0, 0.06), 0 18px 44px rgba(0, 0, 0, 0.11);
+
+  --kf-r-p: 10px;
+  --kf-r-m: 16px;
+  --kf-r-g: 22px;
+
+  --kf-transicao: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Largura maior para caber três colunas de produto em tela cheia. */
+  --kf-largura: 1440px;
+
+  /* Aliases em formato de variável (não classe) pros trechos de SVG gerados em
+     graficos.js/app.js — um <line>/<text> usa stroke/fill="var(--kf-x)", não
+     dá pra aplicar a classe utilitária .kf-cor-*. Sem isso, o var() ficava
+     inválido e grade/rótulos do gráfico saíam sem cor nenhuma. */
+  --kf-cor-superficie: var(--kf-superficie);
+  --kf-cor-borda: var(--kf-fio);
+  --kf-cor-texto-suave: var(--kf-texto-suave);
+}
+
+:root[data-theme="escuro"] {
+  color-scheme: dark;
+
+  /* Cinza-carvão em vez de preto puro: preto absoluto endurece a tela e faz o
+     texto vibrar. Este é o cinza que dá profundidade sem pesar. */
+  --kf-cromo: #0e0f12;
+  --kf-cromo-fio: rgba(255, 255, 255, 0.07);
+  --kf-fundo: #16171a;
+  --kf-superficie: #202226;
+  --kf-superficie-2: rgba(255, 255, 255, 0.055);
+  --kf-superficie-3: rgba(255, 255, 255, 0.09);
+  --kf-fio: rgba(255, 255, 255, 0.09);
+  --kf-fio-forte: rgba(255, 255, 255, 0.18);
+
+  --kf-texto: #eceef1;
+  --kf-texto-suave: #a3a6ad;
+  /* Clareado de #8b8f97 (4.91:1 contra --kf-superficie, folga apertada) pra
+     #91959d (5.30:1) — mesma lógica do tema claro, mais margem de segurança. */
+  --kf-texto-tenue: #91959d;
+
+  /* No escuro as cores de destaque já nascem claras sobre fundo escuro (8:1+
+     de contraste), então não precisam do mesmo ajuste do tema claro. */
+  --kf-primaria: #7ed13f;
+  --kf-primaria-forte: #92dc5a;
+  --kf-primaria-fraca: rgba(126, 209, 63, 0.14);
+
+  --kf-queda: #4ad07d;
+  --kf-alta: #ff6b60;
+  --kf-alerta: #f5b544;
+
+  --kf-sombra-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --kf-sombra-hover: 0 2px 10px rgba(0, 0, 0, 0.55), 0 14px 34px rgba(0, 0, 0, 0.6);
+  --kf-sombra-2: 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+/* ------------------------------------------------------------------ base */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--kf-fundo);
+  color: var(--kf-texto);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Segoe UI Variable Display", "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, p, figure { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+code {
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--kf-superficie-2);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+::selection { background: var(--kf-primaria-fraca); }
+
+:focus-visible {
+  outline: 2px solid var(--kf-primaria);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* O raio do outline padrão (6px) fica quadrado demais em cima de elementos
+   totalmente arredondados (999px) — o anel de foco deve seguir a forma do
+   próprio elemento, senão parece um erro de alinhamento. */
+.kf-btn:focus-visible, .kf-btn-icone:focus-visible, .kf-chip:focus-visible,
+.kf-selo:focus-visible, .kf-tema-btn:focus-visible {
+  border-radius: 999px;
+}
+.kf-nav-link:focus-visible { border-radius: var(--kf-r-p); outline-offset: -2px; }
+/* .kf-produto-curva é role="button" (div focável via tabindex) — sem isso o
+   foco por teclado nele ficava idêntico ao de qualquer link, sem indicar que
+   é um alvo diferente (abre o gráfico) nem respeitar o raio próprio do bloco. */
+.kf-produto-curva:focus-visible { border-radius: 10px; outline-offset: 1px; }
+
+.kf-sr-somente {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ------------------------------------------------------------- estrutura */
+.kf-app {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "topo topo" "lado principal";
+  min-height: 100vh;
+  background: var(--kf-cromo);
+  transition: grid-template-columns var(--kf-transicao);
+}
+
+/* A área de conteúdo é a "folha" clara sobre a moldura. */
+.kf-main { background: var(--kf-fundo); }
+
+/* Topo translúcido com desfoque — o detalhe que mais "diz Apple" sem custar nada. */
+.kf-topbar {
+  grid-area: topo;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 28px;
+  height: 56px;
+  background: color-mix(in srgb, var(--kf-cromo) 92%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--kf-cromo-fio);
+}
+
+/* Recolher: último item da barra lateral, empurrado para o rodapé. */
+.kf-recolher {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--kf-r-p);
+  background: transparent;
+  color: var(--kf-texto-tenue);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background var(--kf-transicao), color var(--kf-transicao);
+}
+.kf-recolher:hover { background: var(--kf-superficie-2); color: var(--kf-texto); }
+.kf-recolher svg { flex: none; transition: transform var(--kf-transicao); }
+.kf-sidebar-recolhida .kf-recolher { justify-content: center; padding: 10px 0; }
+.kf-sidebar-recolhida .kf-recolher span { display: none; }
+.kf-sidebar-recolhida .kf-recolher svg { transform: rotate(180deg); }
+
+/* O botão de recolher entra antes da marca; `margin-right:auto` empurra as
+   ações da conta para a direita sem espalhar os três blocos pela barra. */
+.kf-marca { display: flex; align-items: center; gap: 10px; min-width: 0; margin-right: auto; }
+.kf-logo { display: flex; }
+.kf-logo svg { width: 26px; height: 26px; display: block; }
+.kf-marca-texto { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.kf-marca-nome { font-size: 1.02rem; font-weight: 600; letter-spacing: -0.02em; }
+.kf-marca-slogan {
+  font-size: 0.78rem;
+  color: var(--kf-texto-tenue);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.kf-topbar-acoes { display: flex; align-items: center; gap: 14px; }
+
+.kf-conexao { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--kf-texto-tenue); }
+.kf-conexao-ponto {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--kf-texto-tenue);
+  transition: background var(--kf-transicao);
+}
+.kf-conexao[data-estado="ativo"] .kf-conexao-ponto { background: var(--kf-queda); }
+.kf-conexao[data-estado="erro"] .kf-conexao-ponto { background: var(--kf-alta); }
+.kf-conexao-texto { display: none; }
+@media (min-width: 1100px) { .kf-conexao-texto { display: inline; } }
+
+/* Alternador de tema: segmented control */
+.kf-tema-alternador {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: var(--kf-superficie-2);
+  border-radius: 999px;
+}
+.kf-tema-btn {
+  display: grid; place-items: center;
+  width: 28px; height: 24px;
+  border: 0; border-radius: 999px;
+  background: transparent;
+  color: var(--kf-texto-suave);
+  cursor: pointer;
+  transition: background var(--kf-transicao), color var(--kf-transicao);
+}
+.kf-tema-btn:hover { color: var(--kf-texto); }
+.kf-tema-btn[aria-pressed="true"] {
+  background: var(--kf-superficie);
+  color: var(--kf-texto);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+:root[data-theme="escuro"] .kf-tema-btn[aria-pressed="true"] { background: var(--kf-superficie-3); }
+
+/* ------------------------------------------------------------- navegação */
+.kf-sidebar {
+  grid-area: lado;
+  position: sticky;
+  top: 56px;
+  align-self: start;
+  height: calc(100vh - 56px);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--kf-cromo);
+  border-right: 1px solid var(--kf-cromo-fio);
+}
+
+/* Recolhida: só os ícones, com o rótulo virando dica de ferramenta nativa. */
+.kf-sidebar-recolhida { grid-template-columns: 68px minmax(0, 1fr); }
+.kf-sidebar-recolhida .kf-sidebar { padding: 20px 10px; }
+.kf-sidebar-recolhida .kf-nav-link { justify-content: center; padding: 10px 0; }
+.kf-sidebar-recolhida .kf-nav-link span:not(.kf-nav-badge) { display: none; }
+.kf-sidebar-recolhida .kf-nav-badge {
+  margin: 0;
+  position: absolute;
+  transform: translate(14px, -12px);
+}
+.kf-sidebar-recolhida .kf-nav-link { position: relative; }
+
+.kf-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 12px;
+  border-radius: var(--kf-r-p);
+  color: var(--kf-texto-suave);
+  font-size: 0.92rem;
+  font-weight: 450;
+  transition: background var(--kf-transicao), color var(--kf-transicao);
+}
+.kf-nav-link svg { flex: none; opacity: 0.75; }
+.kf-nav-link:hover { background: var(--kf-superficie-2); color: var(--kf-texto); }
+.kf-nav-link.ativo {
+  background: var(--kf-superficie);
+  color: var(--kf-texto);
+  font-weight: 550;
+  box-shadow: var(--kf-sombra-1);
+}
+.kf-nav-link.ativo svg { opacity: 1; color: var(--kf-primaria); }
+
+.kf-nav-badge {
+  margin-left: auto;
+  min-width: 19px; height: 19px;
+  padding: 0 6px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  background: var(--kf-alta);
+  color: #fff;
+  font-size: 0.7rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* --kf-alta no escuro é um vermelho claro (feito pra funcionar como TEXTO
+   sobre fundo escuro) — texto branco em cima dele cai pra ~2.8:1. Mesma
+   solução já usada em .kf-btn-primaria/.kf-boas-vindas-numero: troca pra um
+   tom escuro do próprio tema, que sobre esse vermelho fica em 6.4:1. */
+:root[data-theme="escuro"] .kf-nav-badge { color: var(--kf-fundo); }
+
+/* -------------------------------------------------------------- conteúdo */
+/* O fundo precisa cobrir a coluna inteira (é ele que separa o conteúdo da
+   moldura), mas o conteúdo continua centralizado e com largura máxima. Por
+   isso a centralização é feita no padding, e não com max-width no elemento —
+   com max-width, o fundo pararia junto com o conteúdo. */
+.kf-main {
+  grid-area: principal;
+  padding: 40px max(32px, calc((100% - var(--kf-largura)) / 2)) 96px;
+  width: 100%;
+}
+/* Em monitor largo, travar o conteúdo em 1440px deixa o título boiando no meio
+   da tela e desperdiça espaço que caberia mais uma coluna de produto. A coluna
+   cresce por faixas — e não até o infinito, senão as telas de texto ficariam
+   com linha longa demais para ler. */
+@media (min-width: 1700px) { .kf-main { --kf-largura: 1760px; } }
+@media (min-width: 2200px) { .kf-main { --kf-largura: 2160px; } }
+@media (min-width: 2800px) { .kf-main { --kf-largura: 2560px; } }
+
+.kf-tela-cabecalho {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+.kf-tela-titulo {
+  font-size: clamp(1.8rem, 3.4vw, 2.45rem);
+  font-weight: 600;
+  letter-spacing: -0.032em;
+  line-height: 1.1;
+}
+.kf-tela-subtitulo {
+  margin-top: 7px;
+  color: var(--kf-texto-suave);
+  font-size: 0.98rem;
+  max-width: 62ch;
+}
+
+.kf-secao { margin-top: 44px; }
+.kf-secao-titulo {
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 14px;
+}
+
+.kf-grade { display: grid; gap: 14px; }
+.kf-grade-1col { grid-template-columns: 1fr; }
+.kf-flex-entre { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.kf-mt-8 { margin-top: 8px; }
+.kf-mt-16 { margin-top: 16px; }
+.kf-coluna-fim { text-align: right; }
+.kf-texto-pequeno { font-size: 0.84rem; }
+.kf-texto-suave { color: var(--kf-texto-suave); }
+.kf-primaria { color: var(--kf-primaria); }
+
+/* ----------------------------------------------------------------- cartão */
+.kf-card {
+  background: var(--kf-superficie);
+  border-radius: var(--kf-r-g);
+  padding: 22px 24px;
+  box-shadow: var(--kf-sombra-1);
+  /* Elevação sutil: só desloca 1px e troca a sombra, nunca borda — repouso e
+     hover usam a mesma "linguagem" de profundidade, só intensidades diferentes. */
+  transition: transform var(--kf-transicao), box-shadow var(--kf-transicao);
+}
+.kf-card:hover { transform: translateY(-1px); box-shadow: var(--kf-sombra-hover); }
+
+.kf-cartao-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+/* Peso reduzido (550 → 500): o título do cartão é identificação, não o dado
+   principal — quem domina é o número (preço, estatística) dentro do cartão. */
+.kf-cartao-titulo { font-size: 1rem; font-weight: 500; letter-spacing: -0.012em; line-height: 1.35; }
+.kf-cartao-sub { margin-top: 3px; font-size: 0.84rem; color: var(--kf-texto-suave); }
+.kf-cartao-meta {
+  display: flex; flex-wrap: wrap; gap: 6px 18px;
+  margin-top: 14px;
+  font-size: 0.82rem; color: var(--kf-texto-suave);
+}
+/* margin-top:auto empurra as ações pro rodapé quando o cartão é um flex
+   column mais alto que o conteúdo (grade de produtos com alturas parelhas) —
+   em contextos que não são flex column, auto vira 0 e não faz nada. */
+.kf-cartao-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+.kf-produto-cartao .kf-cartao-acoes, .kf-loja-cartao .kf-cartao-acoes, .kf-consulta-cartao .kf-cartao-acoes {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+/* ---------------------------------------------------------------- botões */
+.kf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 17px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kf-superficie-2);
+  color: var(--kf-texto);
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--kf-transicao), transform var(--kf-transicao), opacity var(--kf-transicao);
+}
+.kf-btn:hover { background: var(--kf-superficie-3); }
+.kf-btn:active { transform: scale(0.975); }
+.kf-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+.kf-btn-primaria { background: var(--kf-primaria); color: #fff; font-weight: 550; }
+.kf-btn-primaria:hover { background: var(--kf-primaria-forte); }
+:root[data-theme="escuro"] .kf-btn-primaria { color: #0a1405; }
+
+.kf-btn-secundaria { background: var(--kf-superficie-2); }
+.kf-btn-fantasma { background: transparent; color: var(--kf-texto-suave); }
+.kf-btn-fantasma:hover { background: var(--kf-superficie-2); color: var(--kf-texto); }
+.kf-btn-perigo { background: transparent; color: var(--kf-alta); }
+.kf-btn-perigo:hover { background: color-mix(in srgb, var(--kf-alta) 12%, transparent); }
+.kf-btn-pequeno { padding: 6px 13px; font-size: 0.82rem; }
+
+.kf-btn-icone {
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  border: 0; border-radius: 999px;
+  background: var(--kf-superficie-2);
+  color: var(--kf-texto-suave);
+  cursor: pointer;
+  transition: background var(--kf-transicao), color var(--kf-transicao);
+}
+.kf-btn-icone:hover { background: var(--kf-superficie-3); color: var(--kf-texto); }
+
+/* ---------------------------------------------------------------- campos */
+.kf-campo { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.kf-campo-rotulo { font-size: 0.82rem; font-weight: 500; color: var(--kf-texto-suave); }
+.kf-campo-ajuda { font-size: 0.79rem; color: var(--kf-texto-tenue); }
+
+.kf-input, .kf-select, .kf-textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--kf-r-p);
+  background: var(--kf-superficie-2);
+  color: var(--kf-texto);
+  font-size: 0.94rem;
+  transition: background var(--kf-transicao), border-color var(--kf-transicao), box-shadow var(--kf-transicao);
+}
+.kf-input::placeholder, .kf-textarea::placeholder { color: var(--kf-texto-tenue); }
+.kf-input:focus, .kf-select:focus, .kf-textarea:focus {
+  outline: none;
+  background: var(--kf-superficie);
+  border-color: var(--kf-primaria);
+  box-shadow: 0 0 0 3.5px var(--kf-primaria-fraca);
+}
+.kf-select {
+  appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%236e6e73' d='M1 1.5L6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 10px;
+}
+:root[data-theme="escuro"] .kf-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23a1a1a6' d='M1 1.5L6 6.5l5-5'/%3E%3C/svg%3E");
+}
+.kf-textarea { min-height: 96px; resize: vertical; }
+
+.kf-linha-busca { display: flex; gap: 10px; flex-wrap: wrap; }
+.kf-linha-busca .kf-campo { flex: 1 1 260px; }
+.kf-loja-entrada { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.kf-loja-entrada .kf-campo { flex: 1 1 300px; }
+
+.kf-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; }
+.kf-filtros .kf-select, .kf-filtros .kf-input { width: auto; min-width: 178px; }
+
+/* Interruptor no estilo iOS */
+.kf-switch { position: relative; display: inline-flex; flex: none; }
+.kf-switch input {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; margin: 0; cursor: pointer; z-index: 1;
+}
+.kf-switch-trilho {
+  width: 44px; height: 26px;
+  border-radius: 999px;
+  background: var(--kf-fio-forte);
+  transition: background var(--kf-transicao);
+  position: relative;
+}
+.kf-switch-trilho::after {
+  content: "";
+  position: absolute; top: 2px; left: 2px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  transition: transform var(--kf-transicao);
+}
+.kf-switch input:checked + .kf-switch-trilho { background: var(--kf-primaria); }
+.kf-switch input:checked + .kf-switch-trilho::after { transform: translateX(18px); }
+.kf-switch input:focus-visible + .kf-switch-trilho { box-shadow: 0 0 0 3.5px var(--kf-primaria-fraca); }
+.kf-linha-toggle { display: inline-flex; align-items: center; gap: 9px; }
+
+/* ------------------------------------------------------------ números */
+.kf-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 12px;
+}
+.kf-stat-card {
+  background: var(--kf-superficie);
+  border-radius: var(--kf-r-m);
+  padding: 20px;
+  box-shadow: var(--kf-sombra-1);
+  transition: transform var(--kf-transicao), box-shadow var(--kf-transicao);
+}
+.kf-stat-card:hover { transform: translateY(-1px); box-shadow: var(--kf-sombra-hover); }
+/* Peso subiu de 500 pra 600: o número é o conteúdo do cartão, o resto é
+   legenda — ele precisa vencer a leitura de relance. */
+.kf-stat-valor {
+  display: block;
+  font-size: 2.35rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kf-stat-rotulo {
+  display: block;
+  margin-top: 9px;
+  font-size: 0.8rem;
+  font-weight: 450;
+  color: var(--kf-texto-suave);
+}
+.kf-stat-card--destaque .kf-stat-valor { color: var(--kf-primaria); }
+
+/* ------------------------------------------------------------- selos */
+.kf-selo {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px 4px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem; font-weight: 550;
+  white-space: nowrap;
+}
+.kf-selo::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.kf-selo-compativel { color: var(--kf-queda); background: color-mix(in srgb, var(--kf-queda) 11%, transparent); }
+.kf-selo-parcial { color: var(--kf-alerta); background: color-mix(in srgb, var(--kf-alerta) 13%, transparent); }
+.kf-selo-incompativel { color: var(--kf-alta); background: color-mix(in srgb, var(--kf-alta) 11%, transparent); }
+
+.kf-selo-minimo {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kf-queda) 13%, transparent);
+  color: var(--kf-queda);
+  font-size: 0.73rem; font-weight: 600;
+  white-space: nowrap;
+}
+
+.kf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.kf-chip {
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--kf-superficie-2);
+  color: var(--kf-texto-suave);
+  font-size: 0.78rem;
+  font-weight: 450;
+}
+.kf-chip--marca { background: var(--kf-primaria-fraca); color: var(--kf-primaria); font-weight: 550; }
+
+.kf-diff-alta { color: var(--kf-alta); font-weight: 550; }
+.kf-diff-queda { color: var(--kf-queda); font-weight: 550; }
+
+/* Avaliação de preço: vale a pena comprar agora? */
+.kf-avaliacao {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 9px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.79rem; font-weight: 550;
+}
+.kf-avaliacao-otimo { color: var(--kf-queda); background: color-mix(in srgb, var(--kf-queda) 12%, transparent); }
+.kf-avaliacao-bom { color: var(--kf-primaria); background: var(--kf-primaria-fraca); }
+.kf-avaliacao-normal { color: var(--kf-texto-suave); background: var(--kf-superficie-2); }
+.kf-avaliacao-ruim { color: var(--kf-alerta); background: color-mix(in srgb, var(--kf-alerta) 12%, transparent); }
+
+/* ------------------------------------------------------------- tabelas */
+/* Nota: .kf-tabela não está em uso no app.js/index.html hoje (nenhum <table>
+   é gerado no momento) — mantida e aliviada por pedido explícito, não removida
+   como órfã, porque pode voltar a ser referenciada em breve. */
+.kf-tabela-wrap { margin-top: 18px; overflow-x: auto; }
+.kf-tabela { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.kf-tabela th {
+  text-align: left;
+  padding: 0 14px 12px 0;
+  font-size: 0.71rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--kf-texto-tenue);
+  white-space: nowrap;
+}
+.kf-tabela td {
+  padding: 14px 14px 14px 0;
+  vertical-align: middle;
+}
+/* Menos linhas: só a cada duas linhas, bem fraca — separa sem "riscar" a
+   tabela inteira. Mais espaço no padding faz o resto do trabalho de leitura. */
+.kf-tabela tr:nth-child(n + 2) td {
+  border-top: 1px solid color-mix(in srgb, var(--kf-fio) 55%, transparent);
+}
+.kf-tabela td:first-child { font-weight: 500; }
+.kf-tabela td:nth-child(2) { font-variant-numeric: tabular-nums; font-weight: 550; text-align: right; }
+.kf-tabela th:nth-child(2) { text-align: right; }
+.kf-tabela tr:hover td { background: color-mix(in srgb, var(--kf-superficie-2) 60%, transparent); }
+
+/* ------------------------------------------------------------- produtos */
+.kf-produto-cartao { display: flex; flex-direction: column; }
+
+/* -------------------------------------------------------------- consulta */
+.kf-consulta-cartao { display: flex; flex-direction: column; }
+
+/* ---------------------------------------------------------------- lojas */
+.kf-loja-cartao { display: flex; flex-direction: column; }
+/* Cada item já é o seu próprio .kf-card dentro de uma .kf-grade-1col (que dá
+   o espaçamento entre eles) — a borda inferior e o padding apertado eram de
+   um desenho anterior sem cartão; removidos em favor do respiro do próprio
+   cartão. */
+.kf-biblioteca-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+
+/* Veredito do teste de compatibilidade */
+.kf-veredito {
+  border-radius: var(--kf-r-g);
+  padding: 26px 28px;
+  background: var(--kf-superficie);
+  box-shadow: var(--kf-sombra-1);
+  border-left: 3px solid var(--kf-fio-forte);
+}
+.kf-veredito[data-veredito="compativel"] { border-left-color: var(--kf-queda); }
+.kf-veredito[data-veredito="parcial"] { border-left-color: var(--kf-alerta); }
+.kf-veredito[data-veredito="incompativel"] { border-left-color: var(--kf-alta); }
+.kf-veredito-cabecalho { display: flex; align-items: center; gap: 12px; }
+.kf-veredito-cabecalho h3 { font-size: 1.22rem; font-weight: 600; letter-spacing: -0.022em; }
+.kf-veredito-explicacao { margin-top: 10px; color: var(--kf-texto-suave); max-width: 68ch; }
+.kf-veredito-limitacoes { margin: 16px 0 0; padding-left: 18px; color: var(--kf-texto-suave); font-size: 0.88rem; }
+.kf-veredito-limitacoes li { margin-bottom: 5px; }
+.kf-veredito-acoes { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+
+/* Amostra de produtos lidos no teste — divisor bem fraco (55% do --kf-fio) e
+   mais espaço vertical: a lista devia respirar, não parecer planilha. */
+.kf-amostra { display: grid; gap: 1px; margin-top: 16px; }
+.kf-amostra-item {
+  display: flex; justify-content: space-between; gap: 18px; align-items: baseline;
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in srgb, var(--kf-fio) 55%, transparent);
+  font-size: 0.87rem;
+}
+.kf-amostra-item:first-child { border-top: 0; }
+.kf-amostra-nome { color: var(--kf-texto-suave); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.kf-amostra-preco { font-variant-numeric: tabular-nums; font-weight: 550; white-space: nowrap; }
+
+.kf-lista-amostra { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 1px; }
+.kf-lista-amostra li {
+  display: flex; justify-content: space-between; gap: 14px; align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid color-mix(in srgb, var(--kf-fio) 55%, transparent);
+  font-size: 0.85rem;
+}
+.kf-lista-amostra li:first-child { border-top: 0; }
+.kf-lista-amostra strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Passos do diagnóstico, chegando ao vivo */
+.kf-passos { display: grid; gap: 2px; margin-top: 14px; }
+.kf-passo {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 7px 0;
+  font-size: 0.87rem;
+  animation: kf-surgir 260ms ease both;
+}
+.kf-passo-icone { flex: none; width: 16px; margin-top: 3px; color: var(--kf-queda); }
+.kf-passo[data-ok="false"] .kf-passo-icone { color: var(--kf-alerta); }
+.kf-passo-detalhe { color: var(--kf-texto-tenue); font-size: 0.82rem; }
+
+@keyframes kf-surgir { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ------------------------------------------------------- oportunidades */
+.kf-timeline { display: grid; gap: 2px; }
+.kf-timeline-item {
+  display: flex; align-items: flex-start; gap: 15px;
+  padding: 17px 20px;
+  background: var(--kf-superficie);
+  box-shadow: var(--kf-sombra-1);
+  border-radius: var(--kf-r-m);
+  margin-bottom: 9px;
+  transition: transform var(--kf-transicao), box-shadow var(--kf-transicao);
+}
+.kf-timeline-item:hover { transform: translateY(-1px); box-shadow: var(--kf-sombra-hover); }
+.kf-timeline-icone {
+  flex: none;
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--kf-primaria-fraca);
+  color: var(--kf-primaria);
+  font-size: 0.95rem;
+}
+.kf-timeline-corpo { flex: 1; min-width: 0; }
+.kf-timeline-texto { font-size: 0.94rem; line-height: 1.45; }
+.kf-timeline-meta {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  margin-top: 6px;
+  font-size: 0.8rem; color: var(--kf-texto-tenue);
+}
+.kf-timeline-preco { font-variant-numeric: tabular-nums; font-weight: 550; color: var(--kf-texto); }
+
+/* ------------------------------------------------------------- ajustes */
+.kf-ajustes-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px;
+}
+.kf-ajustes-linha {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 17px 0;
+  border-top: 1px solid var(--kf-fio);
+}
+.kf-ajustes-linha-texto { display: flex; flex-direction: column; gap: 3px; max-width: 62ch; }
+.kf-ajustes-linha-texto strong { font-weight: 550; font-size: 0.95rem; }
+.kf-ajustes-linha-texto span { font-size: 0.84rem; color: var(--kf-texto-suave); line-height: 1.45; }
+
+/* --------------------------------------------------------- estados vazios */
+/* Estado vazio generoso e centrado: o título carrega o peso, o corpo (texto
+   solto depois do <strong> no HTML) fica menor e mais claro — não é mais uma
+   "caixa de aviso", é uma pausa na tela. */
+.kf-vazio {
+  padding: 72px 32px;
+  max-width: 42ch;
+  margin: 0 auto;
+  text-align: center;
+  color: var(--kf-texto-tenue);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  background: var(--kf-superficie);
+  border-radius: var(--kf-r-g);
+  box-shadow: var(--kf-sombra-1);
+}
+.kf-vazio strong { display: block; color: var(--kf-texto); font-size: 1.3rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 10px; }
+
+.kf-boas-vindas { display: grid; gap: 14px; }
+.kf-boas-vindas-passo {
+  display: flex; align-items: flex-start; gap: 18px;
+  padding: 26px 28px;
+  background: var(--kf-superficie);
+  border-radius: var(--kf-r-m);
+  box-shadow: var(--kf-sombra-1);
+  transition: transform var(--kf-transicao), box-shadow var(--kf-transicao);
+}
+.kf-boas-vindas-passo:hover { transform: translateY(-1px); box-shadow: var(--kf-sombra-hover); }
+/* Sobrescreve as utilitárias .kf-texto-pequeno aplicadas no HTML (mesmo
+   elemento leva as duas classes) — aqui dentro o título precisa ser maior que
+   o corpo, então a especificidade do seletor composto vence a utilitária. */
+.kf-boas-vindas-passo strong { display: block; font-size: 1rem; font-weight: 600; color: var(--kf-texto); margin-bottom: 4px; }
+.kf-boas-vindas-passo p { font-size: 0.87rem; line-height: 1.5; }
+.kf-boas-vindas-numero {
+  flex: none;
+  width: 27px; height: 27px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--kf-primaria);
+  color: #fff;
+  font-size: 0.82rem; font-weight: 600;
+}
+:root[data-theme="escuro"] .kf-boas-vindas-numero { color: #0a1405; }
+
+.kf-aviso, .kf-erro-rede {
+  padding: 14px 18px;
+  border-radius: var(--kf-r-m);
+  font-size: 0.88rem;
+  background: color-mix(in srgb, var(--kf-alerta) 11%, transparent);
+  color: var(--kf-texto);
+  border-left: 3px solid var(--kf-alerta);
+}
+.kf-erro-rede { background: color-mix(in srgb, var(--kf-alta) 10%, transparent); border-left-color: var(--kf-alta); }
+
+/* Progresso da rodada */
+.kf-progresso {
+  display: flex; align-items: center; gap: 12px;
+  padding: 15px 20px;
+  border-radius: var(--kf-r-m);
+  background: var(--kf-superficie);
+  box-shadow: var(--kf-sombra-1);
+}
+.kf-progresso-titulo { font-weight: 550; font-size: 0.92rem; }
+
+.kf-spinner, .kf-spinner-pequeno {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2px solid var(--kf-fio-forte);
+  border-top-color: var(--kf-primaria);
+  animation: kf-girar 720ms linear infinite;
+}
+.kf-spinner { width: 26px; height: 26px; }
+.kf-spinner-pequeno { width: 14px; height: 14px; border-width: 1.8px; }
+@keyframes kf-girar { to { transform: rotate(360deg); } }
+
+.kf-carregando-inicial {
+  display: grid; place-items: center; gap: 16px;
+  padding: 100px 0;
+  color: var(--kf-texto-suave);
+}
+
+/* --------------------------------------------------------------- gráfico */
+.kf-grafico-wrap { position: relative; margin-top: 8px; }
+.kf-grafico-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.kf-grafico-legenda { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: 0.84rem; }
+.kf-grafico-legenda-item { display: inline-flex; align-items: center; gap: 7px; color: var(--kf-texto-suave); }
+.kf-grafico-legenda-cor { width: 9px; height: 9px; border-radius: 50%; }
+.kf-grafico-tooltip {
+  position: absolute;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: rgba(28, 28, 30, 0.94);
+  color: #fff;
+  font-size: 0.78rem;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -130%);
+  box-shadow: var(--kf-sombra-2);
+  backdrop-filter: blur(8px);
+}
+
+/* ---------------------------------------------------------------- modais */
+.kf-modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  animation: kf-fade 180ms ease both;
+}
+.kf-modal {
+  width: min(560px, 100%);
+  max-height: 86vh;
+  display: flex; flex-direction: column;
+  background: var(--kf-superficie);
+  border-radius: var(--kf-r-g);
+  box-shadow: var(--kf-sombra-2);
+  animation: kf-modal-entrar 220ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.kf-modal--largo { width: min(880px, 100%); }
+/* Comparar configurações lado a lado só funciona com espaço: o modal de
+   família ocupa quase toda a largura disponível, e a grade dentro dele decide
+   sozinha quantas colunas cabem. */
+.kf-modal--xl { width: min(1480px, 100%); }
+.kf-modal-cabecalho {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 22px 24px 14px;
+}
+.kf-modal-titulo { font-size: 1.14rem; font-weight: 600; letter-spacing: -0.022em; }
+.kf-modal-corpo { padding: 0 24px 22px; overflow-y: auto; }
+.kf-modal-rodape {
+  display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid var(--kf-fio);
+}
+@keyframes kf-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kf-modal-entrar { from { opacity: 0; transform: translateY(12px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+.kf-historico-corpo { display: grid; gap: 18px; }
+
+/* --------------------------------------------------------------- toasts */
+.kf-toast-root {
+  position: fixed;
+  bottom: 26px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: grid; gap: 9px;
+  pointer-events: none;
+}
+.kf-toast {
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(28, 28, 30, 0.94);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 500;
+  box-shadow: var(--kf-sombra-2);
+  backdrop-filter: blur(10px);
+  animation: kf-toast-entrar 240ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.kf-toast[data-tipo="erro"] { background: rgba(200, 45, 35, 0.95); }
+.kf-toast[data-tipo="sucesso"] { background: rgba(28, 28, 30, 0.94); }
+@keyframes kf-toast-entrar { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* ------------------------------------------------------------ responsivo */
+@media (max-width: 900px) {
+  .kf-app {
+    grid-template-columns: 1fr;
+    grid-template-areas: "topo" "lado" "principal";
+  }
+  .kf-sidebar {
+    position: sticky;
+    top: 56px;
+    height: auto;
+    flex-direction: row;
+    gap: 4px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: color-mix(in srgb, var(--kf-fundo) 82%, transparent);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--kf-fio);
+    z-index: 20;
+  }
+  .kf-sidebar::-webkit-scrollbar { display: none; }
+  .kf-nav-link { padding: 7px 13px; white-space: nowrap; }
+  .kf-nav-link span:not(.kf-nav-badge) { font-size: 0.87rem; }
+  .kf-main { padding: 26px 18px 80px; }
+  .kf-marca-slogan { display: none; }
+  .kf-topbar { padding: 0 18px; }
+  .kf-card, .kf-veredito { padding: 20px 18px; }
+  .kf-ajustes-linha { flex-direction: column; align-items: flex-start; gap: 12px; }
+  /* Entre 600 e 900px a grade de produtos com cartão mínimo de 330px só cabia
+     numa coluna sobrando bastante ar dos dois lados, e os filtros (mínimo de
+     178px cada) empilhavam cedo demais. Reduzindo os mínimos, 2 colunas
+     passam a caber a partir de ~660px e os filtros ganham uma linha a menos. */
+  .kf-grade-produtos { grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
+  .kf-filtros .kf-select, .kf-filtros .kf-input { min-width: 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ============================================================================
+   Cartão de produto visual — imagem, preço grande, curva e barras.
+   O texto explicativo saiu daqui de propósito: o desenho é que explica.
+============================================================================ */
+/* Foto à esquerda, preço à direita — a leitura de relance é "o que é" pela
+   foto e "quanto custa" pelo número, lado a lado. */
+.kf-produto-cabeca { display: flex; gap: 16px; align-items: flex-start; }
+.kf-produto-cabeca .kf-produto-numeros { flex: 1; min-width: 0; margin: 0; }
+/* Cerca de 25% da área da foto do cartão de família — a foto do produto é
+   parte da identidade dele, e a 66px não dava para reconhecer nada. Fundo
+   branco pelo mesmo motivo do cartão de família: foto de produto vem sobre
+   branco, e o branco aqui faz a moldura sumir. */
+.kf-produto-imagem {
+  width: 116px; height: 116px; flex: none;
+  border-radius: 14px;
+  object-fit: contain;
+  background: #fff;
+  padding: 8px;
+}
+.kf-produto-imagem--vazia { background: var(--kf-superficie-2); }
+@media (max-width: 480px) { .kf-produto-imagem { width: 92px; height: 92px; } }
+.kf-produto-identidade { flex: 1; min-width: 0; }
+/* Recuado (peso 550→500, corpo 0.97→0.93rem): o nome identifica o produto,
+   mas quem manda no cartão é o preço logo abaixo, bem maior. */
+/* O nome é a identidade do cartão — antes competia em desvantagem com o preço
+   e sumia. Sobe de 0.93rem/500/cor suave para 1.08rem/650/cor cheia. */
+/* Sem corte e sem reticências: "Cafeteira Espresso Oster Perfect Brew Má…" não
+   diz qual modelo é, e saber o que é o produto é o motivo de o nome existir. */
+.kf-produto-nome {
+  font-size: 1.02rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.32;
+  color: var(--kf-texto);
+  margin: 16px 0 0;
+  overflow-wrap: anywhere;
+}
+.kf-produto-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.kf-produto-menu { flex: none; opacity: 0; transition: opacity var(--kf-transicao); }
+.kf-produto-cartao:hover .kf-produto-menu, .kf-produto-menu:focus-visible { opacity: 1; }
+
+/* Uma coluna só. A segunda coluna existia para a minicurva; sem ela, o que
+   sobrava era um rótulo solto encostado na borda direita. */
+.kf-produto-numeros { margin: 18px 0 16px; }
+.kf-produto-selo { margin-top: 8px; }
+/* Peso subiu pra 600 (era 500) — este é o número que o cartão inteiro existe
+   pra mostrar, precisa vencer qualquer outro texto na primeira olhada. */
+.kf-preco-grande {
+  font-size: 2.05rem; font-weight: 600; letter-spacing: -0.035em; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kf-preco--minimo { color: var(--kf-queda); }
+.kf-produto-legenda {
+  display: block; margin-top: 6px;
+  font-size: 0.79rem; color: var(--kf-texto-tenue);
+}
+.kf-produto-curva {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  cursor: pointer; border-radius: 10px; padding: 4px 6px; margin: -4px -6px;
+  transition: background var(--kf-transicao);
+}
+.kf-produto-curva:hover { background: var(--kf-superficie-2); }
+.kf-produto-curva svg { display: block; }
+
+/* Barras de comparação entre lojas (vindas de graficos.js) */
+.kf-barras { display: grid; gap: 13px; margin-top: 8px; }
+.kf-barra-linha { display: grid; grid-template-columns: minmax(66px, 27%) 1fr auto; align-items: center; gap: 12px; }
+.kf-barra-rotulo {
+  font-size: 0.82rem; color: var(--kf-texto-suave);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kf-barra-trilho { height: 7px; border-radius: 999px; background: var(--kf-superficie-2); overflow: hidden; }
+.kf-barra-preenchimento { display: block; height: 100%; border-radius: 999px; transition: width 420ms cubic-bezier(0.2,0.9,0.3,1); }
+.kf-barra-valor { font-size: 0.85rem; font-weight: 550; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Linha fina de cada loja: condição de pagamento, parcelamento e quando o
+   preço foi visto. Ocupa a largura toda, logo abaixo da barra. */
+.kf-barra-linha--com-detalhe { row-gap: 5px; }
+.kf-barra-detalhe {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--kf-texto-suave);
+}
+.kf-barra-linha.kf-barra--melhor .kf-barra-detalhe { color: var(--kf-texto); }
+
+.kf-barra-linha.kf-barra--melhor .kf-barra-rotulo { color: var(--kf-texto); font-weight: 550; }
+.kf-barra-linha.kf-barra--melhor .kf-barra-valor { color: var(--kf-primaria); }
+
+/* Números do topo do modal de gráfico */
+.kf-modal-numeros { display: flex; flex-wrap: wrap; gap: 28px; margin-bottom: 20px; }
+.kf-modal-numero {
+  display: block;
+  font-size: 1.72rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Alvos de hover do gráfico e tooltip */
+.kf-grafico-alvo { fill: transparent; cursor: crosshair; }
+.kf-grafico-alvo:hover { fill: color-mix(in srgb, var(--kf-primaria) 7%, transparent); }
+.kf-grafico-tooltip[hidden] { display: none; }
+
+/* Grade de produtos: cartões lado a lado quando cabe. O grid já estica cada
+   item (align-items:stretch é o padrão) até a altura da linha; dentro de cada
+   cartão o .kf-cartao-acoes com margin-top:auto (na seção de cartões) empurra
+   os botões pro rodapé, então cartões vizinhos com texto de tamanhos
+   diferentes ainda terminam com os botões alinhados na mesma linha de base. */
+/* A grade decide sozinha quantas colunas cabem, em qualquer largura de janela.
+   O limite de três colunas existia porque o cartão carregava as barras de
+   todas as lojas e precisava de espaço; agora ele mostra só a loja mais
+   barata. O mínimo de 330px não é estético: abaixo disso a foto não cabe ao
+   lado do preço e o cartão desmonta na vertical. Como o limite fixo de três
+   colunas saiu, monitor grande ganha colunas de verdade — 7 num ultrawide,
+   contra as 3 de antes. */
+.kf-grade-produtos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
+  gap: 16px;
+}
+@media (min-width: 720px) {
+  /* Altura igual só faz sentido com cartões LADO A LADO: é a comparação entre
+     vizinhos que denuncia a diferença de altura. Numa coluna só, igualar todos
+     pela altura do maior só cria rolagem — no celular, cada cartão fica com a
+     altura do próprio conteúdo. */
+  .kf-grade-produtos { grid-auto-rows: 1fr; }
+}
+
+
+/* ============================================================================
+   Conta: avatar no cabeçalho e menu suspenso com perfil, tema e atalhos.
+   O tema mora aqui porque é ajuste de uma vez só — no topo, competia com a
+   marca e com o indicador de conexão sem merecer.
+============================================================================ */
+.kf-conta { position: relative; }
+
+.kf-avatar {
+  display: grid;
+  place-items: center;
+  width: 30px; height: 30px;
+  border: 0; border-radius: 50%;
+  background: var(--kf-primaria);
+  color: #fff;
+  font-size: 0.8rem; font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--kf-transicao), box-shadow var(--kf-transicao);
+}
+:root[data-theme="escuro"] .kf-avatar { color: #0a1405; }
+.kf-avatar:hover { transform: scale(1.06); }
+.kf-avatar[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--kf-primaria-fraca); }
+.kf-avatar--grande { width: 40px; height: 40px; font-size: 1rem; cursor: default; }
+.kf-avatar--grande:hover { transform: none; }
+
+.kf-conta-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  width: 268px;
+  padding: 6px;
+  background: var(--kf-superficie);
+  border-radius: var(--kf-r-m);
+  box-shadow: var(--kf-sombra-2);
+  animation: kf-menu-entrar 160ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.kf-conta-menu[hidden] { display: none; }
+@keyframes kf-menu-entrar { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+.kf-conta-cabecalho {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 12px 14px;
+}
+.kf-conta-cabecalho strong { display: block; font-size: 0.94rem; font-weight: 600; }
+
+.kf-conta-secao { padding: 10px 12px; border-top: 1px solid var(--kf-fio); }
+.kf-conta-rotulo {
+  display: block; margin-bottom: 8px;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--kf-texto-tenue);
+}
+.kf-conta-secao .kf-tema-alternador { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+.kf-conta-secao .kf-tema-btn { width: auto; height: 30px; font-size: 0.78rem; padding: 0 6px; }
+
+.kf-conta-item {
+  display: block;
+  padding: 9px 12px;
+  margin: 0 -12px;
+  border-radius: var(--kf-r-p);
+  font-size: 0.9rem;
+  color: var(--kf-texto);
+  transition: background var(--kf-transicao);
+}
+.kf-conta-item:hover { background: var(--kf-superficie-2); }
+
+/* ------------------------------------------------------- arrastar cartões */
+body.kf-arrastando { user-select: none; cursor: grabbing; }
+.kf-arrastar-clone {
+  border-radius: var(--kf-r-g);
+  box-shadow: var(--kf-sombra-2);
+  pointer-events: none;
+}
+.kf-arrastar-buraco { opacity: 0.25; }
+.kf-arrastar-alvo { outline: 2px dashed var(--kf-primaria); outline-offset: 3px; border-radius: var(--kf-r-g); }
+
+/* Preço final com cupom / desconto à vista — o que a loja não mostra no preço */
+.kf-com-cupom {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kf-queda) 12%, transparent);
+  color: var(--kf-queda);
+  font-size: 0.95rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.kf-com-cupom span { font-size: 0.76rem; font-weight: 500; opacity: 0.85; }
+
+/* ---------------------------------------------------------- troca de tema */
+/* Ligada só durante a troca: transição de cor permanente deixaria cada hover
+   com meio segundo de atraso. */
+:root.kf-trocando-tema,
+:root.kf-trocando-tema *,
+:root.kf-trocando-tema *::before,
+:root.kf-trocando-tema *::after {
+  transition: background-color 380ms ease, color 380ms ease,
+              border-color 380ms ease, box-shadow 380ms ease,
+              fill 380ms ease, stroke 380ms ease !important;
+}
+
+/* Navegadores com View Transitions fazem o crossfade da tela inteira. */
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Preço anunciado, quando o destaque passa a ser o preço com desconto */
+.kf-preco-riscado {
+  margin-top: 5px;
+  font-size: 0.78rem;
+  color: var(--kf-texto-tenue);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--kf-texto-tenue) 60%, transparent);
+}
+
+/* Botão de atualizar no cabeçalho — gira enquanto a busca está em andamento */
+.kf-atualizar-tudo svg { transition: transform var(--kf-transicao); }
+.kf-atualizar-tudo.kf-girando svg { animation: kf-girar 900ms linear infinite; }
+.kf-atualizar-tudo:disabled { opacity: 0.65; }
+@media (max-width: 700px) { .kf-atualizar-tudo span { display: none; } }
+
+/* Quando o preço foi lido — preço tem validade, e a pessoa precisa saber */
+.kf-visto-em {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  color: var(--kf-texto-tenue);
+}
+
+/* Condições de compra da loja mais barata (Pix, parcelamento) */
+.kf-condicoes {
+  margin-top: 7px;
+  font-size: 0.79rem;
+  color: var(--kf-texto-suave);
+}
+
+/* ---------------------------------------------------------- famílias */
+/* Cartão de família: uma busca que rendeu várias configurações do mesmo
+   produto ocupa um cartão só, e as configurações ficam a um clique. */
+.kf-grupo-cartao {
+  display: flex; flex-direction: column; gap: 7px;
+  height: 100%;
+  /* A figura sangra para fora do padding do cartão; sem recortar aqui, ela
+     passaria por cima do canto arredondado. */
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--kf-transicao), box-shadow var(--kf-transicao), border-color var(--kf-transicao);
+}
+.kf-grupo-cartao:hover { transform: translateY(-2px); box-shadow: var(--kf-sombra-2); }
+.kf-grupo-cartao:active { transform: translateY(0) scale(0.995); }
+
+/* Miniaturas empilhadas em leque — dá a entender "tem mais de um aqui"
+   sem precisar escrever isso. */
+/* A figura sangra até a borda do cartão e ocupa toda a sobra de altura. Foto
+   de produto quase sempre vem sobre fundo branco, então o branco aqui faz a
+   moldura e a foto virarem uma coisa só — em vez de um quadrado claro boiando
+   dentro de um cartão escuro. */
+.kf-grupo-figura {
+  flex: 1 1 auto;
+  min-height: 150px;
+  margin: -22px -24px 14px;
+  border-radius: var(--kf-r-g) var(--kf-r-g) 0 0;
+  background: #fff;
+  overflow: hidden;
+}
+.kf-grupo-info { display: flex; flex-direction: column; gap: 4px; }
+.kf-grupo-imagem {
+  /* `cover`, não `contain`: preencher o retângulo corta um pouco da foto, e
+     essa é a troca escolhida — no cartão de família a foto é o assunto, e
+     sobra branca em volta fazia o cartão parecer vazio. */
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 400ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.kf-grupo-cartao:hover .kf-grupo-imagem { transform: scale(1.04); }
+
+/* Maior que o nome de um produto: o rótulo da família é curto e genérico, e é
+   ele que a pessoa lê para saber o que aquele cartão representa. */
+.kf-grupo-titulo {
+  font-size: 1.5rem; font-weight: 600; letter-spacing: -0.028em; line-height: 1.15;
+  margin: 0;
+}
+.kf-grupo-preco { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+
+/* Dentro do modal a grade fica em duas colunas — o modal é mais estreito
+   que a tela, e três colunas espremeriam a comparação de lojas. */
+.kf-grade-produtos--modal { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+
+/* "+2 outras lojas": a promessa do que aparece ao clicar no cartão. */
+.kf-cartao-dica { margin-top: 0; margin-left: 2px; }
+
+/* ------------------------------------------------------- ficha do produto */
+/* Mesmo desenho do cartão, com espaço: foto grande à esquerda, identidade e
+   preço à direita. Em tela estreita vira uma coluna só, foto em cima. */
+.kf-ficha {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+  margin-bottom: 26px;
+}
+@media (min-width: 780px) {
+  .kf-ficha { grid-template-columns: minmax(0, 42%) minmax(0, 1fr); gap: 28px; align-items: start; }
+}
+.kf-ficha-figura {
+  background: #fff;               /* mesma escolha do cartão de família */
+  border-radius: var(--kf-r-g);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+.kf-ficha-figura img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 14px; }
+.kf-ficha-sem-foto { width: 100%; height: 100%; background: var(--kf-superficie-2); }
+.kf-ficha-info { display: flex; flex-direction: column; gap: 2px; }
+.kf-ficha-info .kf-produto-tags { margin-bottom: 12px; }
+.kf-ficha-info .kf-preco-grande { font-size: 2.4rem; }
+.kf-ficha-info .kf-avaliacao { margin-top: 14px; }
+.kf-ficha-acao { margin-top: 18px; }
+
+/* Título de seção dentro da ficha: separa "onde comprar" de "preço por dia"
+   sem precisar de linha divisória. */
+.kf-ficha-secao {
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--kf-texto-tenue);
+  margin: 30px 0 12px;
+}
+
+/* ------------------------------------------- cartão que se mede sozinho */
+/* A grade decide as colunas pela largura da JANELA, mas quem sofre com a
+   largura é o CARTÃO. Com 4 colunas num monitor de 1440px o cartão fica com
+   270px, e a foto de 116px sobrava só 46px para o nome do produto — ilegível.
+   Container query resolve na raiz: o cartão pergunta a largura dele mesmo, não
+   a da tela, e por isso funciona igual na grade, dentro do modal de família e
+   em qualquer número de colunas. */
+.kf-produto-cartao { container-type: inline-size; position: relative; }
+
+/* Estreito (o padrão): foto em cima, ocupando a largura toda. */
+.kf-produto-cabeca { flex-direction: column; align-items: stretch; gap: 14px; }
+.kf-produto-cartao .kf-produto-imagem {
+  width: 100%; height: 150px;
+  border-radius: 14px;
+}
+.kf-produto-menu { position: absolute; top: 16px; right: 16px; z-index: 1; }
+
+/* Foto à esquerda, preço à direita — o desenho que o Gabriel mandou. A medida
+   da container query é o CONTEÚDO do cartão (já sem os 24px de padding de cada
+   lado), por isso 300 e não 330.
+   O preço acompanha a largura do próprio cartão (`cqi` = 1% da largura do
+   contêiner): num cartão apertado ele encolhe em vez de empurrar a foto ou
+   quebrar em duas linhas, e num cartão largo volta ao tamanho cheio. */
+@container (min-width: 300px) {
+  .kf-produto-cabeca { flex-direction: row; align-items: flex-start; }
+  .kf-produto-cartao .kf-produto-imagem { width: 132px; height: 132px; }
+  .kf-produto-cabeca .kf-preco-grande { font-size: clamp(1.5rem, 8.4cqi, 2.05rem); }
+}
+@container (min-width: 380px) {
+  .kf-produto-cartao .kf-produto-imagem { width: 152px; height: 152px; }
+}
+
+/* Resumo dos últimos dias dentro do cartão. Ocupa a largura toda: é uma
+   tendência, não um número — e o gráfico com eixo e datas está a um clique. */
+.kf-produto-curva {
+  display: block;
+  margin-top: 16px;
+  padding: 10px 12px 6px;
+  border-radius: 12px;
+  background: var(--kf-superficie-2);
+}
+.kf-produto-curva .kf-produto-legenda { margin-top: 2px; }
+
+/* Divulgação de link de afiliado. Discreta, mas sempre visível — esconder
+   seria justamente o que ela existe para evitar. */
+.kf-divulgacao {
+  margin: 40px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--kf-fio);
+  font-size: 0.76rem;
+  line-height: 1.6;
+  color: var(--kf-texto-tenue);
+  max-width: 78ch;
+}
+
+/* Loja que recusou leitura. Não é erro do app nem falha da loja: é uma decisão
+   dela que o KiwiFinder respeita — e o aviso existe para dizer qual é o
+   caminho legítimo dali em diante. */
+.kf-aviso-autorizacao {
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--kf-atencao, #E8A33D) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kf-atencao, #E8A33D) 30%, transparent);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+.kf-aviso-autorizacao strong { display: block; margin-bottom: 4px; }
+.kf-aviso-autorizacao span { display: block; margin-top: 6px; }
