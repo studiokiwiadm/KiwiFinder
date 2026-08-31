@@ -39,6 +39,9 @@ const VAZIO = {
     // Ficha técnica copiada da página não é mais guardada: era conteúdo da
     // loja, sem uso em lugar nenhum da tela.
     guardarFichaTecnica: false,
+    // Loja de busca só-JavaScript é lida pelo sitemap dela, não por navegador.
+    usarSitemap: true,
+    paginasPorSitemap: 8,
 
     intervaloMinutos: 60,               // atualiza de hora em hora
     atualizarAoAbrir: true,             // e assim que você abre o app, se estiver velho

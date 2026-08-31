@@ -8,6 +8,7 @@
 import { db, salvar, proximoId, agora } from './store.js'
 import { buscar, robotsPermite } from './net.js'
 import { buscarComFallback, buscarDigitando } from './navegador.js'
+import { buscarPorSitemap } from './sitemap.js'
 import { extrairResultados, extrairProduto, proximaPagina, deduplicar } from './extract.js'
 import { interpretar, tokensDe, compacto } from './nlp.js'
 import { pontuar, filtrarPorSanidadeDePreco, chaveProduto, mesmoProduto, mesmoProdutoNaBusca, marcaConfiavel } from './match.js'
@@ -168,8 +169,34 @@ async function coletarDeVerdade (loja, termo, paginas = 1) {
       }
     }
 
-    // Loja cuja busca só existe em JavaScript não tem URL para chamar: o jeito
-    // é abrir a home e digitar na caixa de busca dela.
+    // Loja cuja busca só existe em JavaScript: antes de abrir um navegador, vale
+    // olhar o sitemap. Ele é o arquivo que a própria loja publica dizendo quais
+    // páginas quer que máquinas leiam — mais legítimo que digitar na caixa
+    // dela, mais completo (o catálogo inteiro, não o que a busca resolver
+    // mostrar) e sem Chrome nenhum, o que é o que permite rodar num servidor.
+    //
+    // De brinde, vem o escopo de graça: procurar "cafeteira" numa loja que só
+    // vende Apple não casa URL nenhuma e custa ZERO requisição.
+    if (loja.buscaDigitada && config.usarSitemap !== false) {
+      const viaSitemap = await buscarPorSitemap(loja, termo, config.paginasPorSitemap || 8)
+      if (viaSitemap.itens.length || viaSitemap.catalogo) {
+        loja.usaSitemap = true
+        loja.catalogoSitemap = viaSitemap.catalogo || 0
+        // Com sitemap não há navegador envolvido; a marca antiga só confundiria
+        // quem olha a aba Lojas.
+        loja.precisaNavegador = false
+        loja.motivoNavegador = null
+        todos.push(...viaSitemap.itens)
+        relatorio = relatorio || { estrategia: 'sitemap', motivo: `${viaSitemap.catalogo} páginas no sitemap da loja` }
+        proxima = null
+        continue
+      }
+      // Sem sitemap utilizável, cai para o caminho antigo.
+      loja.usaSitemap = false
+    }
+
+    // Sem URL de busca e sem sitemap: o jeito é abrir a home e digitar na caixa
+    // de busca da loja.
     const resposta = loja.buscaDigitada
       ? await digitarComConferencia(loja, termo, modo)
       : await buscarComFallback(proxima, {
@@ -190,6 +217,7 @@ async function coletarDeVerdade (loja, termo, paginas = 1) {
     if (resposta.recusada || resposta.precisaAcessoAutorizado) {
       loja.recusouRequisicaoComum = true
       loja.precisaAcessoAutorizado = true
+      loja.recusadaEm = agora()
       loja.precisaNavegador = false
       loja.ultimoErro = resposta.motivo || 'a loja recusou a requisição'
       return {
@@ -201,6 +229,13 @@ async function coletarDeVerdade (loja, termo, paginas = 1) {
 
     if (!resposta.ok || resposta.bloqueado) {
       if (pagina > 1) break            // primeira página já rendeu; segue a vida
+      if (resposta.bloqueado) {
+        // Bloqueio também põe a loja de molho: insistir cinco vezes por rodada
+        // não muda a resposta dela e ainda parece teimosia do nosso lado.
+        loja.precisaAcessoAutorizado = true
+        loja.recusadaEm = agora()
+        loja.ultimoErro = `a loja recusou a requisição (HTTP ${resposta.status})`
+      }
       return {
         itens: [],
         erro: resposta.bloqueado
@@ -918,10 +953,26 @@ export function lojaAtendeConsulta (loja, consulta) {
   return doEscopo.some(t => daBusca.has(t) || [...daBusca].some(b => b.includes(t) || t.includes(b)))
 }
 
+/**
+ * Loja que já recusou fica de molho.
+ *
+ * A Terabyte responde 403 a toda requisição, e o app tentava uma vez POR
+ * CONSULTA — cinco recusas por rodada, todo santo hora. Recusa é resposta:
+ * anotada uma vez, respeitada até a próxima reconferência.
+ *
+ * Reconferir de vez em quando é necessário porque site muda — foi assim que a
+ * Amazon deixou de precisar de navegador sem ninguém perceber.
+ */
+function estaDeMolho (loja) {
+  if (!loja.precisaAcessoAutorizado && !loja.robotsProibe) return false
+  if (!loja.recusadaEm) return false
+  return Date.now() - new Date(loja.recusadaEm).getTime() < 24 * 3600 * 1000
+}
+
 export async function rodar (opcoes = {}) {
   if (rodadaEmCurso) return rodadaEmCurso.registro
   const dados = db()
-  const lojas = dados.lojas.filter(l => l.ativa && l.veredito !== 'incompativel')
+  const lojas = dados.lojas.filter(l => l.ativa && l.veredito !== 'incompativel' && !estaDeMolho(l))
   const consultas = opcoes.consultaId
     ? dados.consultas.filter(c => c.id === opcoes.consultaId)
     : dados.consultas.filter(c => c.ativa)
