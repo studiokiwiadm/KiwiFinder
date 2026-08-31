@@ -1247,8 +1247,13 @@ body.kf-arrastando { user-select: none; cursor: grabbing; }
    moldura e a foto virarem uma coisa só — em vez de um quadrado claro boiando
    dentro de um cartão escuro. */
 .kf-grupo-figura {
-  flex: 1 1 auto;
-  min-height: 150px;
+  /* Altura FIXA, não `flex: 1`.
+     Com `flex: 1` a figura absorvia toda a sobra da linha — e como a grade
+     iguala as alturas, bastava um cartão alto para a foto de todos os outros
+     esticar até virar um painel. Altura fixa mantém o mesmo desenho em todo
+     cartão; a sobra fica embaixo, onde não incomoda. */
+  flex: 0 0 auto;
+  height: clamp(150px, 18vh, 210px);
   margin: -22px -24px 14px;
   border-radius: var(--kf-r-g) var(--kf-r-g) 0 0;
   background: #fff;

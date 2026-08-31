@@ -623,21 +623,53 @@ const IMAGEM_LIXO = /(sprite|transparent-pixel|grey-pixel|pixel\.gif|blank\.|pla
 // aquele produto "não é do mesmo lugar" que os outros.
 const IMAGEM_DE_CLIENTE = /(aicid=community|user-?generated|customer-?image|review-?image)/i
 
+// A loja diz qual é a foto principal — e é nisso que se deve confiar, não no
+// tamanho.
+//
+// "A maior imagem da página" parecia um bom critério e não é: numa página da
+// Amazon as fotos que clientes enviaram costumam ser MAIORES que a oficial. Na
+// Nespresso Essenza Mini, a oficial é `51QP72LhToL` (marcada `landingImage`) e
+// a maior da página era `71bmcVcL06L`, tirada por um comprador — que dá ao
+// produto cara de usado.
+const MARCA_PRINCIPAL = /(landingimage|landing-image|main-?image|product-?image|image-?block|gallery-?main|imagem-?principal|foto-?principal|hero-?image|primary-?image)/i
+
+// Seções de avaliação, onde moram as fotos de cliente.
+const SECAO_DE_CLIENTE = /(review|customer|community|ugc|user-?image|depoimento|avaliacao|avaliação|coment)/i
+
+function dentroDeSecaoDeCliente (el) {
+  let atual = el
+  for (let i = 0; i < 6 && atual; i++) {
+    const marca = attr(atual, 'id') + ' ' + attr(atual, 'class') + ' ' + attr(atual, 'data-testid')
+    if (SECAO_DE_CLIENTE.test(marca)) return true
+    atual = atual.pai
+  }
+  return false
+}
+
 function melhorImagem (bloco, urlBase) {
   const candidatas = []
   for (const el of elementos(bloco)) {
     if (el.tag !== 'img') continue
-    const src = attr(el, 'src') || attr(el, 'data-src') || attr(el, 'data-original') ||
+    // `data-old-hires` é a versão em alta da foto OFICIAL; quando existe, é a
+    // melhor fonte que a página oferece.
+    const src = attr(el, 'data-old-hires') || attr(el, 'src') || attr(el, 'data-src') ||
+      attr(el, 'data-original') ||
       (attr(el, 'srcset').split(',')[0] || '').trim().split(' ')[0]
     if (!src || src.startsWith('data:')) continue
     if (IMAGEM_LIXO.test(src)) continue
     if (IMAGEM_DE_CLIENTE.test(src)) continue
-    // Miniatura declarada pequena não serve — a foto do produto é a maior.
+    if (dentroDeSecaoDeCliente(el)) continue
+    // Miniatura declarada pequena não serve.
     const largura = Number(attr(el, 'width')) || 0
     const altura = Number(attr(el, 'height')) || 0
     if ((largura && largura < 60) || (altura && altura < 60)) continue
     const alt = attr(el, 'alt') || ''
-    candidatas.push({ src, peso: Math.max(largura, altura) + (alt.length > 12 ? 40 : 0) })
+    const marcas = [attr(el, 'id'), attr(el, 'class'), attr(el, 'data-a-image-name'),
+      el.pai ? attr(el.pai, 'id') : '', el.pai ? attr(el.pai, 'class') : ''].join(' ')
+    // O peso da marcação é maior que qualquer tamanho: é declaração da loja,
+    // não palpite nosso.
+    const principal = MARCA_PRINCIPAL.test(marcas) ? 10000 : 0
+    candidatas.push({ src, peso: principal + Math.max(largura, altura) + (alt.length > 12 ? 40 : 0) })
   }
   if (candidatas.length) {
     candidatas.sort((a, b) => b.peso - a.peso)
